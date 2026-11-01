@@ -80,6 +80,7 @@ func _init() -> void:
 
 
 func _ready() -> void:
+	add_to_group(&"farm_grid")
 	_rebuild_crop_index()
 	_rebuild_tree_index()
 	_place_starting_trees()
