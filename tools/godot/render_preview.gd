@@ -21,7 +21,7 @@ func _initialize() -> void:
 		grid.till(Vector2i(x, 0))
 	grid.water(Vector2i(2, 0))
 	grid.water(Vector2i(3, 0))
-	for x in crop.days_to_mature + 1:
+	for x in crop.get_days_to_mature() + 1:
 		var c := Vector2i(x, 1)
 		grid.till(c)
 		grid.plant(c, crop.id)

@@ -24,6 +24,10 @@ signal action_performed(cell: Vector2i, action: StringName, success: bool)
 @export var crops: Array[CropData] = []
 ## Crop planted by the Seed tool (empty = first entry of `crops`).
 @export var selected_seed_id: StringName = &""
+## GDD: crops are tied to seasons. When true, a crop can only be planted in a
+## season listed in its CropData.seasons. (What happens to crops when the
+## season changes is not specified by the GDD, so nothing happens yet.)
+@export var enforce_crop_seasons: bool = true
 
 @export_group("Art")
 ## Farm TileSet (resources/farm_tileset.tres). null = placeholder rectangles.
@@ -84,12 +88,21 @@ func get_crop(crop_id: StringName) -> CropData:
 	return _crop_index.get(crop_id)
 
 
+## True if `crop` may be planted in the current season (see enforce_crop_seasons).
+func can_plant_now(crop: CropData) -> bool:
+	if crop == null:
+		return false
+	if not enforce_crop_seasons or clock == null:
+		return true
+	return crop.grows_in(clock.season)
+
+
 func is_mature(cell: Vector2i) -> bool:
 	var plot := get_plot(cell)
 	if plot == null or not plot.is_planted():
 		return false
 	var crop := get_crop(plot.crop_id)
-	return crop != null and plot.growth_days >= crop.days_to_mature
+	return crop != null and crop.is_mature(plot.growth_days)
 
 
 ## Converts a global position to a cell (may be out of bounds).
@@ -136,7 +149,9 @@ func till(cell: Vector2i) -> bool:
 
 func plant(cell: Vector2i, crop_id: StringName) -> bool:
 	var plot := get_plot(cell)
-	var ok := plot != null and plot.state == FarmPlot.State.TILLED and get_crop(crop_id) != null
+	var crop := get_crop(crop_id)
+	var ok := plot != null and plot.state == FarmPlot.State.TILLED and crop != null \
+		and can_plant_now(crop)
 	if ok:
 		plot.state = FarmPlot.State.PLANTED
 		plot.crop_id = crop_id
@@ -179,7 +194,7 @@ func advance_day() -> void:
 		var plot := plots[i]
 		if plot.is_planted() and plot.watered:
 			var crop := get_crop(plot.crop_id)
-			if crop != null and plot.growth_days < crop.days_to_mature:
+			if crop != null and not crop.is_mature(plot.growth_days):
 				plot.growth_days += 1
 		plot.watered = false
 	refresh_tiles()
@@ -258,7 +273,7 @@ func _draw_crop(plot: FarmPlot, rect: Rect2) -> void:
 			rect.end.y - region.size.y)
 		draw_texture_rect_region(crop.sprite_sheet, Rect2(pos.round(), region.size), region)
 		return
-	var t := clampf(float(plot.growth_days) / float(crop.days_to_mature), 0.0, 1.0)
+	var t := float(crop.get_stage(plot.growth_days)) / float(CropData.STAGE_COUNT - 1)
 	var size := lerpf(4.0, cell_size - 4.0, t)
 	var col := color_seedling.lerp(crop.placeholder_color, t)
 	var r := Rect2(rect.get_center() - Vector2(size, size) * 0.5, Vector2(size, size))

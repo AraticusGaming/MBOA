@@ -7,9 +7,9 @@
 script = ExtResource("1_crop")
 id = &"placeholder_crop"
 display_name = "Placeholder Crop"
-days_to_mature = 3
+seasons = 15
+stage_days = PackedInt32Array(1, 1, 1)
 placeholder_color = Color(0.95, 0.75, 0.2, 1)
 sprite_sheet = ExtResource("2_sheet")
 frame_size = Vector2i(16, 16)
-growth_frames = PackedInt32Array(0, 1, 2)
-mature_frame = 3
+stage_frames = PackedInt32Array(0, 1, 2, 3)

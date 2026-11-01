@@ -21,6 +21,7 @@ func _run_tests() -> void:
 	_test_unwatered(crop)
 	_test_rules()
 	_test_interact_and_save(crop)
+	_test_crop_data(crop)
 
 
 func _test_full_cycle(crop: CropData) -> void:
@@ -34,14 +35,14 @@ func _test_full_cycle(crop: CropData) -> void:
 	var plot := grid.get_plot(cell)
 	check_eq(plot.growth_days, 1, "watered crop grew one day after rollover")
 	check(not plot.watered, "watered flag reset at day start")
-	check(not grid.is_mature(cell) or crop.days_to_mature <= 1, "not mature yet")
-	for i in crop.days_to_mature - 1:
+	check(not grid.is_mature(cell) or crop.get_days_to_mature() <= 1, "not mature yet")
+	for i in crop.get_days_to_mature() - 1:
 		grid.water(cell)
 		clock.sleep()
 	check(grid.is_mature(cell), "mature after days_to_mature watered days")
 	grid.water(cell)
 	clock.sleep()
-	check_eq(plot.growth_days, crop.days_to_mature, "growth stops at maturity")
+	check_eq(plot.growth_days, crop.get_days_to_mature(), "growth stops at maturity")
 	var got: Array = []
 	grid.harvested.connect(func(id, c): got.append([id, c]))
 	check_eq(grid.harvest(cell), crop.id, "harvest returns crop id")
@@ -98,7 +99,7 @@ func _test_interact_and_save(crop: CropData) -> void:
 	check(grid.interact(cell, FarmTools.Tool.HOE), "interact with hoe tills")
 	check(grid.interact(cell, FarmTools.Tool.SEED), "interact with seeds plants default crop")
 	check_eq(grid.get_plot(cell).crop_id, crop.id, "default seed is first crop")
-	for i in crop.days_to_mature:
+	for i in crop.get_days_to_mature():
 		check(grid.interact(cell, FarmTools.Tool.WATERING_CAN), "interact waters (day %d)" % (i + 1))
 		clock.sleep()
 	var harvested := [false]
@@ -115,4 +116,32 @@ func _test_interact_and_save(crop: CropData) -> void:
 		"farm save/load roundtrip")
 	grid.free()
 	grid2.free()
+	clock.free()
+
+
+func _test_crop_data(crop: CropData) -> void:
+	check_eq(CropData.STAGE_COUNT, 4, "GDD: four growth stages")
+	check_eq(crop.stage_days.size(), 3, "stage_days covers stages 1-3")
+	check_eq(crop.stage_frames.size(), 4, "one sprite frame per stage")
+	for s in 4:
+		check(crop.grows_in(s), "placeholder crop tagged for season %d" % s)
+	var clock := make_clock()
+	clock.config.days_per_season = 2
+	var grid := _make_grid(clock)
+	var summer_only := crop.duplicate() as CropData
+	summer_only.id = &"summer_only"
+	summer_only.seasons = 1 << GameClock.Season.SUMMER
+	grid.crops.append(summer_only)
+	grid.till(Vector2i(0, 0))
+	check(not grid.plant(Vector2i(0, 0), &"summer_only"), "out-of-season crop can't be planted (spring)")
+	clock.sleep()
+	clock.sleep()
+	check_eq(clock.season, GameClock.Season.SUMMER, "now summer")
+	check(grid.plant(Vector2i(0, 0), &"summer_only"), "in-season crop plants")
+	grid.enforce_crop_seasons = false
+	clock.sleep()
+	clock.sleep()
+	grid.till(Vector2i(1, 0))
+	check(grid.plant(Vector2i(1, 0), &"summer_only"), "season rule can be disabled")
+	grid.free()
 	clock.free()
