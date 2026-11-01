@@ -1,7 +1,7 @@
 # MBOA Roadmap
 
 Source of truth: `docs/GDD.md` (GDD dated Oct 26, 2026). Where this file and the GDD disagree, the GDD wins.
-Reviewed against the full GDD by Ledan. Open and conflicting items are tracked in `docs/OPEN_QUESTIONS.md`.
+Reviewed against the full GDD by Ledan. Open items are in `docs/OPEN_QUESTIONS.md`; user rulings that supplement the GDD are in `docs/DECISIONS.md`; villager table in `docs/VILLAGERS.md`.
 
 Owners: Cody = systems/GDScript, ART = pixel art, Ledan = integration, structure, GDD consistency.
 Order follows the GDD's "Suggested build order" (steps 1-6), with breeding, village, and reputation after it.
@@ -13,7 +13,8 @@ Order follows the GDD's "Suggested build order" (steps 1-6), with breeding, vill
 - [x] 200 headless tests (`tests/run_all.sh`)
 
 ### Milestone 1.5: Align with the GDD (do next, small)
-- [x] Pass-out per GDD: lose a percentage of carried money and a fixed bonding drop for monsters with the player; wakes in bed. Rework `PassOutConfig`: keep `gold_penalty_fraction` (value open), add `party_bond_drop` (inactive until monsters exist), drop the invented `wake_hour_delay` and `energy_penalty_fraction`, or keep them at 0 and mark them non-GDD. (Cody)
+- [ ] Clock config per ruling: wake 6:00 AM, 30 days per season, 60 real seconds per game hour. (Cody)
+- [ ] Pass-out per ruling: lose 10% of carried money (`gold_penalty_fraction = 0.1`, no cap) plus a fixed bonding drop for monsters with the player (value open, inactive until monsters exist); wakes in bed. Drop the invented `wake_hour_delay` and `energy_penalty_fraction`. (Cody)
 - [x] Remove or rename the "climate" per-season hook. In the GDD, climate means managing the egg or pregnancy environment (Milestone 7), not weather or seasons. Whether seasons change anything beyond crops is an open question. (Cody)
 - [x] Energy: two bars, health and stamina, both 100%. Stamina drops per tool use; at 0 the player is slowed and cannot use tools. Refill by eating, sleeping, or a hot spring. Health outside battle is an open question, so stub it. (Cody)
 - [x] Tools per GDD: Pulaski (axe and hoe in one), sickle, pickaxe, watering can; 1 tile at base level. Tree clearing: four stages (seed, seedling, sapling, grown); seeds and seedlings dug out; sapling 3 Pulaski hits; grown tree 10 swings (6 to fell, 4 for the stump). (Cody)
@@ -32,7 +33,7 @@ Order follows the GDD's "Suggested build order" (steps 1-6), with breeding, vill
 - [ ] Farm start state from the first monster's biome, Angie's walkthrough, 20 favorite-food items, 45 favorite seeds (Cody)
 
 ## Milestone 3: Habitats, pasture, barn, bonding (build order step 3)
-- [ ] Pasture (6 spots), habitats (12 monsters each, built with biome ingredients and Rowan), barn (20 stalls, 4 upgrades to 100) (Cody)
+- [ ] Pasture (6 spots), habitats (12 monsters each; base version of every biome buildable with the materials and Rowan; the farm starts with the first monster's biome habitat built), barn (20 stalls, 4 upgrades to 100) (Cody)
 - [ ] Bond bar: 25% moves to barn, 100% earns the breeding star; feeding, daily food and water in the barn, party of up to 2 (Cody)
 - [ ] Kitchen and kibble; per-monster random tastes (Cody)
 - [ ] Day 2 with Tom: 5 basic traps, trap recipe, first portal (Cody)
@@ -45,7 +46,7 @@ Order follows the GDD's "Suggested build order" (steps 1-6), with breeding, vill
 
 ## Milestone 5: Seasonal tournament (build order step 5)
 - [ ] Optional seasonal tournament; wins give a chance to raise farm rank and size and build a new habitat (Cody)
-- Needs design first: bracket format, plus habitat gating (see open questions).
+- Tournaments gate the story; wins unlock habitat upgrades and may unlock new areas. Base habitats do not need a win. Needs design first: bracket format and which tournaments are story gates.
 
 ## Milestone 6: World map and taming (build order step 6)
 - [ ] World map, screen-to-screen travel on the same clock, portals and unlocks (Cody)
@@ -54,7 +55,7 @@ Order follows the GDD's "Suggested build order" (steps 1-6), with breeding, vill
 ## Milestone 7+: After the GDD build order
 - [ ] Breeding: Nursery, Pedigree and modifier, family crossing grid (7x7), modifiers Plant and Elemental, stat inheritance, parentage, recipes, eggs and pregnancy with climate, recovery timers
 - [ ] Village: Shop, Tavern board, Arena, Job board, Monster Hunter Association, appraisal and egg evaluation
-- [ ] Villagers: 20 named, friendship hearts, gifts, heart events, dating (needs the full villager table)
+- [ ] Villagers: 20 named (see `docs/VILLAGERS.md`), friendship hearts, gifts, heart events, dating
 - [ ] Economy, releasing, seasonal festival, reputation (six categories, guarded A and S areas)
 - [ ] Options: UI scale, zoom, colorblind mode, 4K; mobile controls and builds
 
