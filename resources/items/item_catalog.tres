@@ -1,0 +1,19 @@
+[gd_resource type="Resource" script_class="ItemCatalog" load_steps=14 format=3]
+
+[ext_resource type="Script" path="res://scripts/core/item_catalog.gd" id="1_catalog"]
+[ext_resource type="Script" path="res://scripts/core/item_data.gd" id="2_itemdata"]
+[ext_resource type="Resource" path="res://resources/items/wood.tres" id="3_wood"]
+[ext_resource type="Resource" path="res://resources/items/stone.tres" id="4_stone"]
+[ext_resource type="Resource" path="res://resources/items/turnip_seeds.tres" id="5_turnip_seeds"]
+[ext_resource type="Resource" path="res://resources/items/carrot_seeds.tres" id="6_carrot_seeds"]
+[ext_resource type="Resource" path="res://resources/items/tomato_seeds.tres" id="7_tomato_seeds"]
+[ext_resource type="Resource" path="res://resources/items/pumpkin_seeds.tres" id="8_pumpkin_seeds"]
+[ext_resource type="Resource" path="res://resources/items/turnip.tres" id="9_turnip"]
+[ext_resource type="Resource" path="res://resources/items/carrot.tres" id="10_carrot"]
+[ext_resource type="Resource" path="res://resources/items/tomato.tres" id="11_tomato"]
+[ext_resource type="Resource" path="res://resources/items/pumpkin.tres" id="12_pumpkin"]
+[ext_resource type="Resource" path="res://resources/items/placeholder_crop.tres" id="13_placeholder_crop"]
+
+[resource]
+script = ExtResource("1_catalog")
+items = Array[ExtResource("2_itemdata")]([ExtResource("3_wood"), ExtResource("4_stone"), ExtResource("5_turnip_seeds"), ExtResource("6_carrot_seeds"), ExtResource("7_tomato_seeds"), ExtResource("8_pumpkin_seeds"), ExtResource("9_turnip"), ExtResource("10_carrot"), ExtResource("11_tomato"), ExtResource("12_pumpkin"), ExtResource("13_placeholder_crop")])

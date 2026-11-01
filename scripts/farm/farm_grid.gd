@@ -13,7 +13,7 @@ extends Node2D
 ## Trees (TreeData) advance through seed -> seedling -> sapling -> grown.
 ##
 ## Tools (ToolData, one tile each): Pulaski hits a tree on the cell or tills
-## empty soil; watering can waters; seeds plant. Not GDD, placeholder (Ledan
+## empty soil; watering can waters (seeds are planted with plant()). Not GDD, placeholder (Ledan
 ## ruling): the sickle clears grass and weeds, the pickaxe breaks rocks
 ## (ObstacleData, resources/obstacles/*.tres). Cleared trees and obstacles
 ## report their drops through `items_dropped` (wood, stone).
@@ -44,8 +44,6 @@ signal items_dropped(cell: Vector2i, item_id: StringName, amount: int)
 @export var cell_size: int = 16
 ## Crops known to this grid (data-driven, see resources/crops/*.tres).
 @export var crops: Array[CropData] = []
-## Crop planted by the Seed tool (empty = first entry of `crops`).
-@export var selected_seed_id: StringName = &""
 ## GDD: crops are tied to seasons. When true, a crop can only be planted in a
 ## season listed in its CropData.seasons.
 @export var enforce_crop_seasons: bool = true
@@ -150,6 +148,12 @@ func get_farm_tree(cell: Vector2i) -> FarmTree:
 	return plot.tree if plot else null
 
 
+## CropData planted on `cell`, or null.
+func get_crop_at(cell: Vector2i) -> CropData:
+	var plot := get_plot(cell)
+	return get_crop(plot.crop_id) if plot and plot.is_planted() else null
+
+
 ## True if `crop` may be planted in the current season (see enforce_crop_seasons).
 func can_plant_now(crop: CropData) -> bool:
 	if crop == null:
@@ -206,8 +210,6 @@ func use_tool(cell: Vector2i, tool: ToolData) -> bool:
 			return hit_tree(cell) if get_plot(cell).has_tree() else till(cell)
 		ToolData.Kind.WATERING_CAN:
 			return water(cell)
-		ToolData.Kind.SEEDS:
-			return plant(cell, _get_seed_id())
 		ToolData.Kind.SICKLE:
 			return hit_obstacle(cell, tool, &"sickle")
 		ToolData.Kind.PICKAXE:
@@ -251,7 +253,7 @@ func water(cell: Vector2i) -> bool:
 
 
 ## Harvests a mature crop; the plot returns to TILLED. Returns the crop id or
-## &"" on failure. Inventory handling is Milestone 2 (listen to `harvested`).
+## &"" on failure. The Player puts the crop's item in the inventory.
 func harvest(cell: Vector2i) -> StringName:
 	if not is_mature(cell):
 		action_performed.emit(cell, &"harvest", false)
@@ -577,12 +579,6 @@ func _grow_tree(tree: FarmTree) -> void:
 		tree.stage += 1
 		tree.days_in_stage = 0
 		tree.hits = 0
-
-
-func _get_seed_id() -> StringName:
-	if selected_seed_id != &"":
-		return selected_seed_id
-	return crops[0].id if not crops.is_empty() and crops[0] != null else &""
 
 
 func _setup_soil_layer() -> void:

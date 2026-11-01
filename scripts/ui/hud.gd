@@ -1,9 +1,9 @@
 class_name Hud
 extends CanvasLayer
 ## Placeholder HUD: day / season / time / phase / health + stamina bars
-## (GDD Energy) / tired / exhausted / current tool, hotbar
-## buttons for mouse & touch (built from Player.tools), and the sleep
-## fade-to-black transition.
+## (GDD Energy) / Coins / tired / exhausted / current tool or item, the hotbar
+## along the bottom for mouse & touch (Player tools, then the first inventory
+## slots with their counts), and the sleep fade-to-black transition.
 
 ## Seconds to fade back in after the new day starts.
 @export var fade_in_seconds: float = 0.8
@@ -15,6 +15,7 @@ extends CanvasLayer
 @onready var _phase_label: Label = %PhaseLabel
 @onready var _tired_label: Label = %TiredLabel
 @onready var _tool_label: Label = %ToolLabel
+@onready var _coins_label: Label = %CoinsLabel
 @onready var _health_bar: ProgressBar = %HealthBar
 @onready var _stamina_bar: ProgressBar = %StaminaBar
 @onready var _exhausted_label: Label = %ExhaustedLabel
@@ -53,22 +54,46 @@ func _bind_player() -> void:
 	_refresh()
 
 
-## One toggle button per hotbar slot, labelled "<key> <name>".
+## One toggle button per hotbar slot (tools, then inventory slots).
 func _build_tool_buttons() -> void:
 	for c in _tool_buttons.get_children():
 		_tool_buttons.remove_child(c)
 		c.queue_free()
 	if player == null:
 		return
-	for i in player.tools.size():
-		var t := player.tools[i]
+	for i in player.get_hotbar_size():
 		var b := Button.new()
-		b.text = "%d %s" % [i + 1, t.display_name if t else "?"]
 		b.toggle_mode = true
 		b.focus_mode = Control.FOCUS_NONE
+		b.clip_text = true
+		b.custom_minimum_size = Vector2(20, 0)
 		b.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		b.pressed.connect(_on_tool_button.bind(i))
 		_tool_buttons.add_child(b)
+	_update_slot_texts()
+
+
+## Label for hotbar slot `i`: "<key> <tool>" or "<key> <item> x<count>".
+func get_slot_text(i: int) -> String:
+	if player == null:
+		return ""
+	if i < player.tools.size():
+		var t := player.tools[i]
+		return "%d %s" % [i + 1, t.display_name if t else "?"]
+	var inv: Inventory = player_state.inventory if player_state else null
+	var slot = inv.get_slot(i - player.tools.size()) if inv else null
+	if slot == null:
+		return "%d -" % (i + 1)
+	var item := inv.get_item_in_slot(i - player.tools.size())
+	return "%d %s x%d" % [i + 1, item.display_name if item else String(slot.id), slot.count]
+
+
+func _update_slot_texts() -> void:
+	for i in _tool_buttons.get_child_count():
+		var b := _tool_buttons.get_child(i) as Button
+		var t := get_slot_text(i)
+		if b.text != t:
+			b.text = t
 
 
 func _refresh() -> void:
@@ -85,9 +110,17 @@ func _refresh() -> void:
 		_stamina_bar.max_value = cfg.max_stamina
 		_stamina_bar.value = player_state.stamina
 		_exhausted_label.visible = player_state.is_exhausted()
+		_coins_label.text = "Coins: %d" % player_state.coins
 	if player:
 		var tool := player.current_tool
-		_tool_label.text = "Tool: " + (tool.display_name if tool else "-")
+		if tool:
+			_tool_label.text = "Tool: " + tool.display_name
+		else:
+			var item: ItemData = player.get_current_item()
+			_tool_label.text = "Item: " + (item.display_name if item else "-")
+		if _tool_buttons.get_child_count() != player.get_hotbar_size():
+			_build_tool_buttons()
+		_update_slot_texts()
 		for i in _tool_buttons.get_child_count():
 			(_tool_buttons.get_child(i) as Button).button_pressed = i == player.current_slot
 

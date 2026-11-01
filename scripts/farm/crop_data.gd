@@ -18,6 +18,10 @@ const STAGE_COUNT := 4
 ## Watered days spent in stages 1-3 before reaching stage 4 (harvest-ready).
 ## Size must be STAGE_COUNT - 1. PLACEHOLDER (GDD open question).
 @export var stage_days: PackedInt32Array = PackedInt32Array([1, 1, 1])
+## Item put in the inventory on harvest (&"" = the item with the crop's id).
+@export var harvest_item_id: StringName = &""
+## Items per harvest. Not GDD, placeholder.
+@export_range(1, 20) var harvest_amount: int = 1
 ## Placeholder draw color of the mature crop when there is no sprite sheet.
 @export var placeholder_color: Color = Color(0.9, 0.75, 0.2)
 
@@ -33,6 +37,10 @@ const STAGE_COUNT := 4
 ## Modulate applied to the sheet so placeholder crops sharing crop_basic.png
 ## look different (white = unchanged).
 @export var sprite_tint: Color = Color.WHITE
+
+
+func get_harvest_item_id() -> StringName:
+	return harvest_item_id if harvest_item_id != &"" else id
 
 
 ## Total watered days from planting to harvest-ready.

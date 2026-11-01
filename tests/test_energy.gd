@@ -70,7 +70,7 @@ func _test_player_tool_gating() -> void:
 	var clock := make_clock()
 	var ps := _make_state()
 	var grid := FarmGrid.new()
-	grid.crops = [load(CROP_PATH) as CropData]
+	grid.crops = [load(CROP_PATH) as CropData, load("res://resources/crops/turnip.tres") as CropData]
 	grid.clock = clock
 	root.add_child(grid)
 	grid._ready()
@@ -87,8 +87,11 @@ func _test_player_tool_gating() -> void:
 	p.select_tool_by_id(&"pulaski")
 	check(p.act_on_cell(Vector2i(0, 0)), "Pulaski tills")
 	check_eq(ps.stamina, 100.0 - cost * 2.0, "tilling costs stamina")
-	p.select_tool_by_id(&"seeds")
+	p.set_tool(p.tools.size())  # first item slot: starting turnip seeds (placeholder kit)
+	check(p.get_current_item() != null and p.get_current_item().is_seed(), "seed item selected")
+	var seeds_before: int = ps.inventory.count(&"turnip_seeds")
 	check(p.act_on_cell(Vector2i(0, 0)), "plant")
+	check_eq(ps.inventory.count(&"turnip_seeds"), seeds_before - 1, "planting uses one seed")
 	check_eq(ps.stamina, 100.0 - cost * 2.0, "planting seeds is not a tool use")
 	ps.spend_stamina(1000.0)
 	p.select_tool_by_id(&"pulaski")
@@ -107,8 +110,9 @@ func _test_player_tool_gating() -> void:
 	ps.spend_stamina(1000.0)
 	# Harvest is free even when exhausted (GDD: walk up and click).
 	var plot := grid.get_plot(Vector2i(0, 0))
-	plot.growth_days = (load(CROP_PATH) as CropData).get_days_to_mature()
+	plot.growth_days = (load("res://resources/crops/turnip.tres") as CropData).get_days_to_mature()
 	check(p.act_on_cell(Vector2i(0, 0)), "harvest works at 0 stamina")
+	check_eq(ps.inventory.count(&"turnip"), 1, "harvest puts the crop in the inventory")
 	p.free()
 	grid.free()
 	ps.free()

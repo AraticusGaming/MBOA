@@ -93,6 +93,9 @@ func _test_roundtrip_across_day() -> void:
 	grid.place_tree(Vector2i(5, 1), grid.trees[0].id, TreeData.Stage.SAPLING)
 	grid.place_tree(Vector2i(7, 3), grid.trees[0].id, TreeData.Stage.SEED)
 	w[1].coins = 120
+	w[1].inventory.clear()
+	w[1].add_item(&"wood", 12)
+	w[1].add_item(&"turnip_seeds", 3)
 	_water_and_sleep(w)  # -> day 2 (sapling grows to grown with 1-day stages)
 	grid.hit_tree(Vector2i(5, 1))
 	w[1].spend_stamina(35.0)
@@ -104,6 +107,9 @@ func _test_roundtrip_across_day() -> void:
 	check_eq(loaded[0].get_time_string(true), "11:30", "loaded time 11:30")
 	check(loaded[1].stamina == 65.0 and loaded[1].health == 90.0 and loaded[1].coins == 120,
 		"loaded stamina/health/coins")
+	check(loaded[1].inventory.count(&"wood") == 12 and loaded[1].inventory.count(&"turnip_seeds") == 3,
+		"loaded inventory (wood, seeds)")
+	check_eq(loaded[1].inventory.to_array(), w[1].inventory.to_array(), "inventory slots identical")
 	check_eq(loaded[2].get_plot(Vector2i(2, 2)).growth_days, 1, "loaded crop growth")
 	var t: FarmTree = loaded[2].get_farm_tree(Vector2i(5, 1))
 	check(t.stage == TreeData.Stage.GROWN and t.hits == 1, "loaded tree stage and damage")

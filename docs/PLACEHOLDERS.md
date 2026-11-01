@@ -38,3 +38,45 @@ Rulings from Ledan (Stardew-style), awaiting the user's confirmation, are marked
 | Days per growth stage **(Ledan)** | Turnip 1/1/2, Carrot 1/2/1, Tomato 2/2/2, Pumpkin 2/3/3, Placeholder 1/1/1 | `stage_days` |
 | Crop sprites | all share `crop_basic.png`, tinted per crop | `sprite_tint` |
 | Out-of-season crops die at the season change **(Ledan, Stardew rule)** | on; the plot goes back to tilled soil (no dead-crop object) | `FarmGrid.kill_out_of_season_crops` |
+
+## Coins, items and inventory
+GDD: currency is Coins; the shop sells "seeds and other goods"; every item has a buy and a sell value. The numbers
+and the inventory rules below are placeholders.
+
+| Item | Value | Where |
+|------|-------|-------|
+| Starting Coins (new game) | 500 | `resources/economy_config.tres` `starting_coins` |
+| Starting items (new game) | 10 Turnip Seeds | `economy_config.tres` `starting_items` |
+| Inventory size | 24 slots | `economy_config.tres` `inventory_slots` |
+| Max stack | 99 per slot (all items) | `resources/items/*.tres` `max_stack` |
+| Hotbar | tools in keys 1-4, then the first 5 inventory slots in keys 5-9 | `economy_config.tres` `hotbar_item_slots`, `Player.hotbar_item_slots` |
+| Items that don't fit (full inventory) | lost (no ground drops yet); harvest is refused when there's no space | `PlayerState.add_item()`, `Player._harvest()` |
+| Seeds are inventory items (the old "Seeds" tool is gone); planting uses one seed | rule | `Player.act_on_cell()` |
+| Harvested crops are edible (flat stamina refill, see Energy) | all crops | `resources/items/<crop>.tres` `edible` |
+| One crop per harvest | 1 | `resources/crops/*.tres` `harvest_amount` |
+| Item colors (no item art yet) | colored swatches | `resources/items/*.tres` `color` |
+
+### Prices (Coins)
+| Item | Buy | Sell |
+|------|-----|------|
+| Turnip Seeds | 20 | 10 |
+| Carrot Seeds | 30 | 15 |
+| Tomato Seeds | 50 | 25 |
+| Pumpkin Seeds | 100 | 50 |
+| Turnip | - | 35 |
+| Carrot | - | 45 |
+| Tomato | - | 60 |
+| Pumpkin | - | 140 |
+| Placeholder Crop | - | 10 |
+| Wood | - | 2 |
+| Stone | - | 2 |
+
+## Shop
+| Item | Value | Where |
+|------|-------|-------|
+| Seed shop location | a counter with a placeholder shopkeeper on the farm (top right); no town yet | `scenes/world/shop_counter.tscn`, `scenes/farm/farm.tscn` |
+| Shopkeeper identity | unnamed placeholder (the GDD/VILLAGERS don't assign the seed shop yet) | `ShopCounter._draw()` |
+| Stock | the four seeds; only seeds that grow in the current season (Stardew-style) | `resources/shop/seed_shop.tres` `stock`, `seasonal_seeds` |
+| Selling | instant sale at the shop window (no shipping bin / overnight payout yet) | `ShopData.buys_from_player`, `Shop.sell_slot()` |
+| Time pauses while the shop window is open | Stardew rule | `ShopUI` (`Clock.pause(&"shop")`) |
+| Shop hours / closed days | none (always open) | - |

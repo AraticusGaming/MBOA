@@ -1,4 +1,4 @@
-[gd_scene load_steps=19 format=3]
+[gd_scene load_steps=20 format=3]
 
 [ext_resource type="Script" path="res://scripts/farm/farm_grid.gd" id="1_grid"]
 [ext_resource type="Resource" path="res://resources/crops/placeholder_crop.tres" id="2_crop"]
@@ -20,6 +20,8 @@
 [ext_resource type="Resource" path="res://resources/crops/carrot.tres" id="16_carrot"]
 [ext_resource type="Resource" path="res://resources/crops/tomato.tres" id="17_tomato"]
 [ext_resource type="Resource" path="res://resources/crops/pumpkin.tres" id="18_pumpkin"]
+
+[ext_resource type="PackedScene" path="res://scenes/world/shop_counter.tscn" id="19_counter"]
 
 [node name="Farm" type="Node2D"]
 
@@ -56,6 +58,9 @@ Vector2i(8, 3): "weed"
 
 [node name="Bed" parent="." instance=ExtResource("5_bed")]
 position = Vector2(96, 112)
+
+[node name="ShopCounter" parent="." instance=ExtResource("19_counter")]
+position = Vector2(540, 88)
 
 [node name="Player" parent="." instance=ExtResource("3_player")]
 position = Vector2(320, 128)

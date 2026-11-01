@@ -8,7 +8,6 @@ var PULASKI := load("res://resources/tools/pulaski.tres") as ToolData
 var SICKLE := load("res://resources/tools/sickle.tres") as ToolData
 var PICKAXE := load("res://resources/tools/pickaxe.tres") as ToolData
 var CAN := load("res://resources/tools/watering_can.tres") as ToolData
-var SEEDS := load("res://resources/tools/seeds.tres") as ToolData
 
 
 func _make_grid(clock: GameClock) -> FarmGrid:
@@ -108,8 +107,8 @@ func _test_interact_and_save(crop: CropData) -> void:
 	var grid := _make_grid(clock)
 	var cell := Vector2i(5, 5)
 	check(grid.interact(cell, PULASKI), "interact with Pulaski tills")
-	check(grid.interact(cell, SEEDS), "interact with seeds plants default crop")
-	check_eq(grid.get_plot(cell).crop_id, crop.id, "default seed is first crop")
+	check(grid.plant(cell, crop.id), "plant the crop")
+	check_eq(grid.get_plot(cell).crop_id, crop.id, "crop id stored")
 	for i in crop.get_days_to_mature():
 		check(grid.interact(cell, CAN), "interact waters (day %d)" % (i + 1))
 		clock.sleep()
@@ -117,7 +116,7 @@ func _test_interact_and_save(crop: CropData) -> void:
 	grid.harvested.connect(func(_id, _c): harvested[0] = true)
 	check(grid.interact(cell, PULASKI), "interact on mature crop harvests (any tool)")
 	check(harvested[0], "harvest signal via interact")
-	grid.interact(cell, SEEDS)
+	grid.plant(cell, crop.id)
 	grid.interact(cell, CAN)
 	var data := JSON.parse_string(JSON.stringify(grid.to_dict())) as Dictionary
 	var grid2 := _make_grid(clock)
@@ -164,8 +163,8 @@ func _test_tool_data() -> void:
 	for t in [PULASKI, SICKLE, PICKAXE, CAN]:
 		check(t != null and expected.get(t.id) == t.kind and t.is_tool and t.stamina_cost > 0.0,
 			"GDD tool resource: %s" % (t.id if t else "missing"))
-	check(SEEDS != null and SEEDS.kind == ToolData.Kind.SEEDS and not SEEDS.is_tool
-		and SEEDS.stamina_cost == 0.0, "seeds are an item, not a tool")
+	check(not ResourceLoader.exists("res://resources/tools/seeds.tres"),
+		"seeds are inventory items now, not a hotbar tool")
 	var clock := make_clock()
 	var grid := _make_grid(clock)
 	check(not grid.use_tool(Vector2i(0, 0), SICKLE), "sickle: nothing to clear on empty soil")
