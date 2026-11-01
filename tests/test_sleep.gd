@@ -7,7 +7,7 @@ const PlayerStateScript := preload("res://scripts/core/player_state.gd")
 
 func _make_state(clock: GameClock) -> Node:
 	var ps: Node = PlayerStateScript.new()
-	ps.config = ps.config.duplicate()
+	ps.pass_out_config = ps.pass_out_config.duplicate()
 	root.add_child(ps)
 	ps.bind_clock(clock)
 	return ps
@@ -25,39 +25,47 @@ func _run_tests() -> void:
 func _test_defaults_are_neutral() -> void:
 	var cfg := load("res://resources/pass_out_config.tres") as PassOutConfig
 	check(cfg != null, "pass_out_config.tres loads")
-	check(cfg.wake_hour_delay == 0.0 and cfg.energy_penalty_fraction == 0.0
-		and cfg.gold_penalty_fraction == 0.0, "placeholder penalties default to 0")
+	check(cfg.gold_penalty_fraction == 0.0 and cfg.party_bond_drop == 0.0,
+		"GDD pass-out penalty values are open: default 0")
+	check(not ("wake_hour_delay" in cfg) and not ("energy_penalty_fraction" in cfg),
+		"invented wake delay / energy penalty removed")
 	var clock := make_clock()
 	var ps := _make_state(clock)
-	ps.gold = 100
+	ps.coins = 100
 	clock.advance_minutes(20.0 * 60.0)  # 6:00 + 20h = 02:00 -> pass out
 	check_eq(clock.day, 2, "passed out -> day 2")
 	check(ps.last_sleep_was_pass_out, "PlayerState.last_sleep_was_pass_out = true")
 	check(clock.last_sleep_was_pass_out, "Clock.last_sleep_was_pass_out = true")
-	check_eq(ps.gold, 100, "no gold lost with default config")
-	check_eq(ps.energy, ps.max_energy, "full energy with default config")
-	check_eq(clock.get_time_string(true), "06:00", "wake at 06:00 with default config")
+	check_eq(ps.coins, 100, "no Coins lost with default config")
+	check_eq(clock.get_time_string(true), "06:00", "wake at wake_hour after pass-out")
 	ps.free()
 	clock.free()
 
 
+class FakeMonster:
+	var bond := 50.0
+	func add_bond(delta: float) -> void:
+		bond = clampf(bond + delta, 0.0, 100.0)
+
+
 func _test_pass_out_penalties() -> void:
 	var clock := make_clock()
-	clock.pass_out_config = clock.pass_out_config.duplicate()
-	clock.pass_out_config.wake_hour_delay = 2.0
 	var ps := _make_state(clock)
-	ps.config.energy_penalty_fraction = 0.5
-	ps.config.gold_penalty_fraction = 0.1
-	ps.config.gold_penalty_max = 5
-	ps.gold = 200
+	ps.pass_out_config.gold_penalty_fraction = 0.1
+	ps.pass_out_config.party_bond_drop = 5.0
+	ps.coins = 205
+	var m1 := FakeMonster.new()
+	var m2 := FakeMonster.new()
+	ps.party = [m1, m2]
 	var resolved: Array = []
 	ps.sleep_resolved.connect(func(p, pen): resolved.append([p, pen]))
 	clock.advance_minutes(100000.0)
 	check_eq(clock.day, 2, "pass-out rollover")
-	check_eq(clock.get_time_string(true), "08:00", "wake_hour_delay 2h -> wake 08:00")
-	check_eq(ps.energy, ps.max_energy * 0.5, "energy_penalty_fraction applied")
-	check_eq(ps.gold, 195, "gold penalty applied with cap (10% of 200 capped at 5)")
+	check_eq(clock.get_time_string(true), "06:00", "no invented wake delay")
+	check_eq(ps.coins, 185, "10% of carried Coins lost (floor of 20.5)")
+	check(m1.bond == 45.0 and m2.bond == 45.0, "fixed bond drop applied to party")
 	check(resolved.size() == 1 and resolved[0][0] == true, "sleep_resolved(pass_out=true) once")
+	check_eq(resolved[0][1], {"coins_lost": 20, "party_bond_drop": 5.0}, "penalty report")
 	check_eq(ps.pass_out_count, 1, "pass_out_count")
 	ps.free()
 	clock.free()
@@ -65,18 +73,19 @@ func _test_pass_out_penalties() -> void:
 
 func _test_voluntary_sleep_restores() -> void:
 	var clock := make_clock()
-	clock.pass_out_config = clock.pass_out_config.duplicate()
-	clock.pass_out_config.wake_hour_delay = 3.0
 	var ps := _make_state(clock)
-	ps.config.energy_penalty_fraction = 0.5
-	ps.energy = 10.0
+	ps.pass_out_config.gold_penalty_fraction = 0.5
+	ps.pass_out_config.party_bond_drop = 10.0
+	var m := FakeMonster.new()
+	ps.party = [m]
+	ps.coins = 100
 	ps.last_sleep_was_pass_out = true
 	clock.advance_minutes(19.0 * 60.0)  # 01:00, tired
 	check(clock.is_tired, "tired at 01:00")
 	clock.sleep()
 	check(not ps.last_sleep_was_pass_out, "voluntary sleep clears last_sleep_was_pass_out")
-	check_eq(ps.energy, ps.max_energy, "voluntary sleep fully restores energy")
-	check_eq(clock.get_time_string(true), "06:00", "no wake delay after voluntary sleep")
+	check(ps.coins == 100 and m.bond == 50.0, "no penalty for sleeping in bed")
+	check_eq(clock.get_time_string(true), "06:00", "wake at 06:00")
 	check(not clock.is_tired, "not tired after sleeping")
 	ps.free()
 	clock.free()
@@ -138,5 +147,13 @@ func _test_bed_in_scene() -> void:
 	check(clock.get_pause_reasons().has(&"sleep_fade"), "clock paused during fade-in")
 	await create_timer(1.5).timeout
 	check(not fade.visible and not clock.is_paused(), "fade finished and clock resumed")
+	check(player.global_position.is_equal_approx(bed.get_wake_position()), "player wakes at the bed")
+	# Pass out far from the bed: still wakes in bed (GDD).
+	player.global_position = Vector2(500, 300)
+	clock.advance_minutes(100000.0)
+	await create_timer(clock.config.sleep_transition_seconds + 0.2).timeout
+	check(ps.last_sleep_was_pass_out, "passed out")
+	check(player.global_position.is_equal_approx(bed.get_wake_position()), "wakes in bed after pass-out")
+	await create_timer(1.5).timeout
 	main.queue_free()
 	await process_frame

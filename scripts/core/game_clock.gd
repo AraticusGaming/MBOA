@@ -19,8 +19,6 @@ const MINUTES_PER_HOUR := 60.0
 const MINUTES_PER_DAY := 1440.0
 const SEASON_COUNT := 4
 const CONFIG_PATH := "res://resources/clock_config.tres"
-const CLIMATE_PATH := "res://resources/climate_config.tres"
-const PASS_OUT_CONFIG_PATH := "res://resources/pass_out_config.tres"
 
 ## Emitted when the whole in-game minute changes (at most once per frame).
 signal minute_changed(minute_of_day: int)
@@ -38,11 +36,6 @@ signal day_ended(day: int, pass_out: bool)
 signal paused_changed(paused: bool)
 
 var config: ClockConfig
-## Placeholder (unused) climate data, see ClimateConfig.
-var climate: ClimateConfig
-## Pass-out penalties (open design question). Clock applies wake_hour_delay;
-## the PlayerState autoload applies the rest.
-var pass_out_config: PassOutConfig
 
 ## Current game day, 1-based, counted from the start of the save.
 var day: int = 1
@@ -67,8 +60,6 @@ var _last_hour: int = -1
 
 func _init() -> void:
 	config = _load_or_default(CONFIG_PATH, ClockConfig) as ClockConfig
-	climate = _load_or_default(CLIMATE_PATH, ClimateConfig) as ClimateConfig
-	pass_out_config = _load_or_default(PASS_OUT_CONFIG_PATH, PassOutConfig) as PassOutConfig
 	_on_config_loaded()
 	_reset_to_day(1)
 
@@ -205,11 +196,6 @@ func get_darkness() -> float:
 	return 0.0
 
 
-## Placeholder climate lookup (unused; climate is an open design question).
-func get_climate() -> Dictionary:
-	return climate.get_for_season(get_season_name()) if climate else {}
-
-
 func to_dict() -> Dictionary:
 	return {
 		"day": day,
@@ -263,7 +249,6 @@ func _finish_sleep(pass_out: bool) -> void:
 	var old_year := year
 	var old_phase := phase
 	_reset_to_day(day + 1)
-	time_minutes += _get_wake_delay_minutes(pass_out)
 	phase = _phase_for_hour(fmod(get_hours_float(), 24.0))
 	_sync_last_marks()
 	if phase != old_phase:
@@ -271,14 +256,6 @@ func _finish_sleep(pass_out: bool) -> void:
 	if season != old_season or year != old_year:
 		season_changed.emit(season, year)
 	day_started.emit(day)
-
-
-## Extra minutes added to wake time: PassOutConfig.wake_hour_delay after a
-## pass-out (placeholder, default 0), none after normal sleep.
-func _get_wake_delay_minutes(pass_out: bool) -> float:
-	if pass_out and pass_out_config:
-		return maxf(pass_out_config.wake_hour_delay, 0.0) * MINUTES_PER_HOUR
-	return 0.0
 
 
 func _set_time(new_minutes: float) -> void:
