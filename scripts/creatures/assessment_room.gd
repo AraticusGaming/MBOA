@@ -260,8 +260,9 @@ func _build_ui() -> void:
 	_ui.layer = 15
 	add_child(_ui)
 	var top := PanelContainer.new()
-	top.position = Vector2(8, 4)
-	top.size = Vector2(624, 44)
+	# Right of the HUD's bars (top left).
+	top.position = Vector2(150, 4)
+	top.size = Vector2(400, 36)
 	_ui.add_child(top)
 	var v := VBoxContainer.new()
 	top.add_child(v)
@@ -274,7 +275,7 @@ func _build_ui() -> void:
 	v.add_child(_message)
 	var side := PanelContainer.new()
 	side.name = "Captures"
-	side.position = Vector2(470, 60)
+	side.position = Vector2(440, 48)
 	_ui.add_child(side)
 	_captures_box = VBoxContainer.new()
 	side.add_child(_captures_box)
