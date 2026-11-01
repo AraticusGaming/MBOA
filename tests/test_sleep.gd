@@ -26,19 +26,24 @@ func _run_tests() -> void:
 func _test_defaults_are_neutral() -> void:
 	var cfg := load("res://resources/pass_out_config.tres") as PassOutConfig
 	check(cfg != null, "pass_out_config.tres loads")
-	check(cfg.gold_penalty_fraction == 0.0 and cfg.party_bond_drop == 0.0,
-		"GDD pass-out penalty values are open: default 0")
+	check_eq(cfg.gold_penalty_fraction, 0.1, "ruling (DECISIONS.md): lose 10% of carried money")
+	check_eq(cfg.party_bond_drop, 0.0, "bonding drop still open: 0 / inactive")
 	check(not ("wake_hour_delay" in cfg) and not ("energy_penalty_fraction" in cfg),
 		"invented wake delay / energy penalty removed")
 	var clock := make_clock()
 	var ps := _make_state(clock)
 	ps.coins = 100
+	ps.party = [FakeMonster.new()]
 	clock.advance_minutes(20.0 * 60.0)  # 6:00 + 20h = 02:00 -> pass out
 	check_eq(clock.day, 2, "passed out -> day 2")
 	check(ps.last_sleep_was_pass_out, "PlayerState.last_sleep_was_pass_out = true")
 	check(clock.last_sleep_was_pass_out, "Clock.last_sleep_was_pass_out = true")
-	check_eq(ps.coins, 100, "no Coins lost with default config")
+	check_eq(ps.coins, 90, "default config: 10% of 100 carried Coins lost, no cap")
+	check_eq(ps.party[0].bond, 50.0, "default: no bonding drop yet")
 	check_eq(clock.get_time_string(true), "06:00", "wake at wake_hour after pass-out")
+	ps.coins = 1000000
+	clock.advance_minutes(100000.0)
+	check_eq(ps.coins, 900000, "no cap on the 10% loss")
 	ps.free()
 	clock.free()
 

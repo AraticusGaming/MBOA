@@ -4,5 +4,5 @@
 
 [resource]
 script = ExtResource("1_passout")
-gold_penalty_fraction = 0.0
+gold_penalty_fraction = 0.1
 party_bond_drop = 0.0
