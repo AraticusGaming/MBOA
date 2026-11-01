@@ -7,6 +7,13 @@ const TILESET := "res://resources/farm_tileset.tres"
 const MAPPING := "res://resources/farm_tile_mapping.tres"
 const FRAMES := "res://resources/player_frames.tres"
 const CROP := "res://resources/crops/placeholder_crop.tres"
+## Slice 3 Woodland Assessment art (ART_NOTES "Woodland"): path -> expected size.
+const WOODLAND_ART := {
+	"res://assets/tilesets/woodland_tiles.png": Vector2i(128, 144),
+	"res://assets/backgrounds/woodland_room.png": Vector2i(640, 360),
+	"res://assets/sprites/trap_basic.png": Vector2i(64, 16),
+	"res://assets/sprites/item_bait.png": Vector2i(16, 16),
+}
 
 
 func _run_tests() -> void:
@@ -14,6 +21,7 @@ func _run_tests() -> void:
 	_test_player_frames()
 	_test_crop_frames()
 	_test_farm_tiles()
+	_test_woodland_art()
 	await _test_player_animation()
 
 
@@ -33,6 +41,31 @@ func _test_tileset() -> void:
 	check(map != null, "tile mapping loads")
 	for coords in [map.empty_tile, map.tilled_tile, map.watered_tile]:
 		check(src.has_tile(coords), "mapped tile %s exists" % str(coords))
+
+
+func _test_woodland_art() -> void:
+	for path in WOODLAND_ART:
+		var tex := load(path) as Texture2D
+		check(tex != null, "%s loads" % path)
+		if tex == null:
+			continue
+		check_eq(Vector2i(tex.get_size()), WOODLAND_ART[path], "%s size" % path.get_file())
+		var img := tex.get_image()
+		if img.is_compressed():
+			img.decompress()
+		var alpha_ok := true
+		for y in img.get_height():
+			for x in img.get_width():
+				var a := img.get_pixel(x, y).a8
+				if a != 0 and a != 255:
+					alpha_ok = false
+		check(alpha_ok, "%s alpha is only 0 or 255" % path.get_file())
+	# The room background equals the Assessment room's draw area and is fully opaque.
+	var room := (load("res://assets/backgrounds/woodland_room.png") as Texture2D).get_image()
+	check(not room.detect_alpha(), "woodland_room.png is opaque")
+	var cfg := load("res://resources/assessment/woodland.tres") as AssessmentConfig
+	check(cfg != null and Rect2(0, 0, 640, 360).encloses(cfg.room_rect),
+		"room_rect fits inside the 640x360 background")
 
 
 func _test_player_frames() -> void:

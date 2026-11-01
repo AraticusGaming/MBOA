@@ -1,13 +1,13 @@
-# MBOA Art Notes (Milestone 1, 1b polish, creatures)
+# MBOA Art Notes (Milestone 1, 1b polish, creatures, slice 3 Woodland)
 
 Style: strict 16-bit, cozy, Stardew-like. Clean pixels, no anti-aliasing, no blur,
 one pixel scale. Colored (plum-brown / dark green / dark red) outlines, never pure black.
 
 ## Palette
-- Master palette (38 colors): `tools/art/palette.py` (`PALETTE`, index order = swatch order).
+- Master palette (42 colors): `tools/art/palette.py` (`PALETTE`, index order = swatch order).
   Indices 0-31 are the original M1 colors and never change; new colors are only appended.
 - Swatch: `tools/art/palette.png` (8 columns of 16x16 swatches, left-to-right, top-to-bottom;
-  8x5 grid now, last row partly filled).
+  8x6 grid now, last row partly filled).
 - Ember extension (added for Cinderkin, use for any fire / glow art):
 
 | idx | name | hex | use |
@@ -20,6 +20,14 @@ one pixel scale. Colored (plum-brown / dark green / dark red) outlines, never pu
 | 37 | ember_glow | `#e8894e` | soft glow: ear interiors, gliding membranes |
 
   Flames are outlined with `red_dark` (20); fur with `outline` (0).
+- Woodland extension (slice 3, for forest floor and the tree wall):
+
+| idx | name | hex | use |
+|----:|------|-----|-----|
+| 38 | loam | `#5b4a31` | olive-brown forest floor base (darker, greener than farm dirt) |
+| 39 | loam_dark | `#3f3427` | floor specks, contact shadows, canopy shadow dither, path rim |
+| 40 | moss | `#85963d` | muted olive moss (patches, mossy floor, log/rock caps) |
+| 41 | canopy_deep | `#1a3126` | deepest gaps between canopy clumps in the tree wall |
 - Every opaque pixel in shipped PNGs is a palette color; alpha is only 0 or 255.
 
 ## Regenerating
@@ -32,6 +40,10 @@ one pixel scale. Colored (plum-brown / dark green / dark red) outlines, never pu
   (`tools/art/preview_m1b.py` also renders a mock farm scene and a mock HUD).
 - Do not hand-edit the PNGs; change the generator. M1b added no palette colors (0-31 only).
 - `python3 tools/art/gen_cinderkin.py` writes the Cinderkin sheet, portrait and Wet Waxweed icon (Pillow, optional `--preview DIR`).
+- `python3 tools/art/gen_slice3_woodland.py` writes the Woodland tileset, the composed room
+  background, the trap sheet and the bait icon (optional `--preview DIR`; `preview_slice3.py`
+  renders a tiling test and a mock room with traps, bait, player and Cinderkin).
+  `python3 tools/art/palette.py` rewrites the swatch after palette changes.
 
 ## Godot import
 Use nearest filtering (already set in `project.godot`), no mipmaps, integer scaling.
@@ -214,6 +226,120 @@ For a TextureProgressBar: `texture_under`/`texture_over` = bar_frame (nine_patch
 margins 3), `texture_progress` = a fill, `texture_progress_offset` = (3, 3), and size the
 fill to the 4px trough. The wood ring is: outline, bevel light/dark, mid wood, inner bevel,
 dark inner edge; brass nail heads sit at (3,3) in each corner of the 18x18 frames.
+
+## assets/tilesets/woodland_tiles.png (128x144, 16x16 tiles, 8 columns x 9 rows)
+Woodland Assessment room. Index = row * 8 + col; atlas coords = (idx % 8, idx / 8).
+Opaque ground tiles: 0-7, 26, 27, 34, 35, 38. Everything else is a transparent overlay.
+
+| idx | name | notes |
+|----:|------|-------|
+| 0 | floor_a | forest floor (loam), seamless; bulk ground |
+| 1 | floor_b | seamless variant (a moss speck, a pebble) |
+| 2 | leaf_litter_a | seamless, 3 fallen leaves |
+| 3 | leaf_litter_b | seamless, 4 fallen leaves |
+| 4 | floor_twigs | seamless, forked twig + leaf + pebble |
+| 5 | floor_pebbles | seamless, pebbles |
+| 6 | floor_mossy | seamless, floor partly grown over with moss (moss stays off the edge pixels) |
+| 7 | floor_sprouts | seamless, 4 small green sprouts |
+| 8 | moss_patch_small | overlay, flat moss blob |
+| 9 | moss_patch_large | overlay, larger moss blob |
+| 10 | rock_small | overlay, outlined rock with contact shadow |
+| 11 | rock_pair | overlay, two small rocks |
+| 12 | rock_mossy | overlay, rock with a moss cap |
+| 13 | mushrooms_red | overlay, two red-capped toadstools |
+| 14 | mushrooms_brown | overlay, cluster of three brown mushrooms |
+| 15 | fern | overlay, low fern |
+| 16 | bush | overlay, round bush (fills the tile, bottom row = ground shadow) |
+| 17 | bush_berries | overlay, bush with red berries |
+| 18 | fern_tall | overlay, tall fern |
+| 19 | stump | overlay, mossy cut stump |
+| 20 | log_left | overlay, fallen log: cut end (rings) + bark; continues E |
+| 21 | log_mid | overlay, bark, tiles horizontally (repeat for longer logs) |
+| 22 | log_right | overlay, rounded broken end; log runs 20, 21..., 22 |
+| 23 | log_short | overlay, a whole 1-tile log with a sprout |
+| 24, 25 / 32, 33 | boulder_tl, boulder_tr / boulder_bl, boulder_br | overlay, 2x2 mossy boulder (32x32): TL at (x,y), TR (x+1,y), BL (x,y+1), BR (x+1,y+1) |
+| 26, 27, 34, 35 | canopy_fill_00, _10, _01, _11 | opaque canopy, one 32x32 seamless block (see tree wall) |
+| 28, 29 | canopy_bottom_a, _b | overlay, lower fringe of the far (top) tree wall + canopy shadow; a has a trunk top |
+| 30, 31 | trunk_base_a, _b | overlay, the row under 28/29: a = trunk with roots, b = undergrowth fern; shadow fades out |
+| 36, 37 | canopy_top_a, _b | overlay, sunlit upper rim of the near (bottom) tree wall |
+| 38 | path_fill | opaque, packed forest-dirt path, seamless (interior texture of the path set) |
+| 39 | leaf_pile | overlay, heap of autumn leaves |
+| 40, 41 | canopy_left_0, _1 | overlay, left tree wall (foliage on the left, edge on the right) |
+| 42, 43 | canopy_right_0, _1 | overlay, right tree wall |
+| 44, 45 | canopy_corner_tl, _tr | overlay, where the top wall's fringe meets the left / right wall |
+| 46, 47 | canopy_corner_bl, _br | overlay, where the bottom wall's rim meets the left / right wall |
+| 48-63 | path autotile | `48 + mask`, overlay on the floor (see bitmask) |
+| 64 | flowers | overlay, white wood anemones + bluebells |
+| 65 | twig_pinecone | overlay, fallen branch and a pinecone |
+| 66-71 | empty | reserved |
+
+### Tree wall (canopy tiles 26-47)
+All canopy tiles are cut from ONE seamless 32x32 canopy block, so each one has a block position
+`(bx, by)`; **put a canopy tile only on a cell where `(x % 2, y % 2) == (bx, by)`** (any 2x2-aligned
+grid works). Then fill, fringe, rim, side and corner tiles all join with no seams.
+
+| tiles | (bx, by) | | tiles | (bx, by) |
+|-------|----------|-|-------|----------|
+| 26 fill_00 | (0,0) | | 36 top_a | (0,1) |
+| 27 fill_10 | (1,0) | | 37 top_b | (1,1) |
+| 34 fill_01 | (0,1) | | 40 left_0 / 41 left_1 | (1,0) / (1,1) |
+| 35 fill_11 | (1,1) | | 42 right_0 / 43 right_1 | (0,0) / (0,1) |
+| 28 bottom_a | (0,0) | | 44 corner_tl / 45 corner_tr | (1,0) / (0,0) |
+| 29 bottom_b | (1,0) | | 46 corner_bl / 47 corner_br | (1,1) / (0,1) |
+
+- Far (top) wall: canopy fill rows, then a row of 28/29 (a at even x, b at odd x) on top of the
+  floor, then a row of 30/31 under it (30 under 28, 31 under 29). Trunks repeat every 32 px with
+  ferns between.
+- Near (bottom) wall: a row of 36/37 (even/odd x) on the floor, canopy fill below it.
+- Side walls: a column of 40/41 (left; must be on an odd x) or 42/43 (right; even x), with fill
+  beyond. Corners 44-47 go where those runs meet. All wall overlays draw above the floor.
+- The canopy is drawn top-down, not y-sorted: put the near (bottom) wall on a layer above
+  actors if creatures should walk "under" it; the background PNG below is flat.
+
+### Path autotile (48-63)
+Same 4-bit order as the farm sets: `N = 1, E = 2, S = 4, W = 8`, `tile = 48 + mask` of the
+orthogonal path neighbors (mask 0 = lone pad, 5 = vertical, 10 = horizontal, 15 = cross; full
+table under farm_tiles). Packed dirt (38 inside), brown lips, a `loam_dark` rim outside and a
+couple of drifted leaves; transparent outside the path so it sits on any floor tile. Corners
+fill only when both adjacent sides connect.
+
+Ground mix used in the room: 0 ~40%, 1 ~24%, 2 ~12%, 3 ~6%, 4/5/6/7 ~4-5% each, then overlays
+(moss patches, rocks, ferns, mushrooms, flowers) at roughly one per 25 cells.
+
+## assets/backgrounds/woodland_room.png (640x360, opaque)
+Ready-made background for `scenes/world/assessment_room.tscn`, composed only from
+woodland_tiles (grid 40x23 at 16 px, bottom row cut to 8 px; nothing hand-placed off-grid).
+The GDD gives no room size, so it matches the room's existing draw area: the 640x360 viewport
+with `room_rect` = (24, 56, 592, 280) from `resources/assessment/woodland.tres`.
+- Draw at (0, 0) (Sprite2D `centered = false` or a TextureRect) under everything else.
+- Tree wall: canopy rows 0-1, fringe row 2, trunks row 3 (y 48-64, so trunk feet sit at the
+  room_rect top y = 56); left wall columns 0-1 (x 0-32), right wall columns 38-39 (x 608-640); near wall from row 21 (y 336).
+- Path from the exit (48, 320) along y ~320 to the spawn (320, 300), with a spur north-east
+  to (392, 232); it continues under the near canopy at x 48-64 as the way out.
+- Props (logs, boulder at (544, 128) 32x32, bushes, ferns, stump) are decoration only, kept
+  near the walls; there is no collision. The middle of the room stays open for wandering.
+- Regenerate rather than edit; `room_layers()` in the generator holds the layout.
+
+## assets/sprites/trap_basic.png (64x16, 16x16 frames, 4 columns x 1 row)
+Basic Woodland trap: a slatted wooden crate with a prop stick, same wood colors and plum outline
+as the fence/bed. **16x16**: it stays readable at 16 (crate, slats, stick, bait all read) and
+matches an item/tile; 32x32 would make it as big as a creature.
+
+| frame | state | look |
+|------:|-------|------|
+| 0 | idle | crate resting closed, prop stick lying in front (inventory / not yet set) |
+| 1 | set | crate propped up on the stick, bait (red berry lump) visible underneath |
+| 2 | shaking | snapped shut, amber eyes peering through the slats, jiggle marks; also shake the node 1 px left/right while `shake_seconds` runs |
+| 3 | knocked_over | crate tipped toward the viewer, empty and dark inside, stick and dust scattered (bait gone) |
+
+- Anchor: ground contact at pixel (8, 13) in every frame. Sprite2D `centered = true`,
+  `offset = (0, -5)`, node at the trap position. Footprint about 14x11 px (one tile).
+- Visible bounds: idle (1,2)-(15,16), set (1,0)-(15,15), shaking (0,2)-(16,14), knocked (0,2)-(16,16).
+
+## assets/sprites/item_bait.png (16x16)
+Bait: a tied cloth pouch with berries peeking out and a little sparkle. The GDD names no
+specific bait item (crops or crops turned into biome bait), so this is the generic basic bait
+icon. Visible (2,0)-(14,15); centered in the 16x16 slot like the other item icons.
 
 ## Coming later
 - Starter monsters default to **32x32** frames and follow the Cinderkin sheet layout
