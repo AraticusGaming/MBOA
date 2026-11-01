@@ -3,12 +3,13 @@
 Owners: Cody = systems/GDScript, ART = pixel art, Ledan = integration, structure, GDD consistency.
 
 ## Milestone 1: Core loop skeleton
-- [ ] Continuous clock (time of day, days, seasons) as an autoload (Cody)
-- [ ] Player movement and a basic farm scene (Cody)
-- [ ] Farm tiles: till, plant, water, grow (Cody)
-- [ ] Sleeping and pass-out, day rollover (Cody)
+- [x] Continuous clock (time of day, days, seasons) as an autoload (Cody)
+- [x] Player movement and a basic farm scene (Cody)
+- [x] Farm tiles: till, plant, water, grow (Cody)
+- [x] Sleeping and pass-out, day rollover (Cody)
 - [ ] Placeholder tileset and player sprite (ART)
-- Open question: pass-out penalty, climate
+- Open question: pass-out penalty, climate. Both are configurable placeholders for now
+  (`resources/pass_out_config.tres`, all penalties 0; `resources/climate_config.tres`, unused hook).
 
 ## Milestone 2: Food and Assessment
 - [ ] Growing and harvesting food crops (Cody)
