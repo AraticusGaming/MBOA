@@ -68,6 +68,10 @@ var sprite: AnimatedSprite2D
 var is_moving: bool = false
 ## Interactables in reach (beds, shop counter, doors...): nodes with use(by).
 var _nearby: Array[Node] = []
+## Optional interact handler for rooms without a farm grid (e.g. the
+## Assessment room places a trap). Called with the player; returns true if
+## it handled the press.
+var interact_fallback: Callable
 
 const DIRECTION_NAMES := {
 	Vector2i.DOWN: "down",
@@ -230,6 +234,8 @@ func interact() -> bool:
 		return true
 	if farm_grid != null and act_on_cell(get_target_cell()):
 		return true
+	if interact_fallback.is_valid() and interact_fallback.call(self):
+		return true
 	return eat_current_item()
 
 
@@ -300,6 +306,11 @@ func is_near_bed() -> bool:
 		if n.is_in_group(&"bed"):
 			return true
 	return false
+
+
+## Forgets every nearby interactable (when moved to another room).
+func clear_interactables() -> void:
+	_nearby.clear()
 
 
 func get_nearby_interactables() -> Array[Node]:

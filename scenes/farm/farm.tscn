@@ -1,4 +1,4 @@
-[gd_scene load_steps=21 format=3]
+[gd_scene load_steps=22 format=3]
 
 [ext_resource type="Script" path="res://scripts/farm/farm_grid.gd" id="1_grid"]
 [ext_resource type="Resource" path="res://resources/crops/placeholder_crop.tres" id="2_crop"]
@@ -21,6 +21,7 @@
 [ext_resource type="Resource" path="res://resources/crops/tomato.tres" id="17_tomato"]
 [ext_resource type="Resource" path="res://resources/crops/pumpkin.tres" id="18_pumpkin"]
 [ext_resource type="Resource" path="res://resources/crops/wet_waxweed.tres" id="21_waxweed"]
+[ext_resource type="PackedScene" path="res://scenes/world/assessment_door.tscn" id="22_door"]
 
 [ext_resource type="PackedScene" path="res://scenes/world/shop_counter.tscn" id="19_counter"]
 
@@ -62,6 +63,9 @@ position = Vector2(96, 112)
 
 [node name="ShopCounter" parent="." instance=ExtResource("19_counter")]
 position = Vector2(540, 88)
+
+[node name="AssessmentDoor" parent="." instance=ExtResource("22_door")]
+position = Vector2(96, 270)
 
 [node name="Player" parent="." instance=ExtResource("3_player")]
 position = Vector2(320, 128)

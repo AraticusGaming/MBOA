@@ -13,6 +13,7 @@ signal stamina_changed(stamina: float, max_stamina: float)
 ## The inventory's contents changed (forwarded from Inventory.changed).
 signal inventory_changed
 signal monsters_changed
+signal assessment_completed(monster: RefCounted)
 
 const MONSTER_CONFIG_PATH := "res://resources/monsters/monster_config.tres"
 const PASS_OUT_CONFIG_PATH := "res://resources/pass_out_config.tres"
@@ -35,6 +36,14 @@ var monsters: Array = []
 ## member with add_bond(delta: float) receives the pass-out bonding drop
 ## (0 and inactive by default).
 var party: Array = []
+## Farm's starting biome (SpeciesData.Biome), set by the first monster
+## (GDD opening step 5); -1 before the Assessment.
+var farm_biome: int = -1
+## Habitats on the farm: [{id, biome, built}] (stub state; Slice 3 adds the
+## actual habitat areas).
+var habitats: Array = []
+## True once the Assessment chose the first monster.
+var assessment_done: bool = false
 ## True if the most recent day ended by passing out (2 AM) instead of sleeping.
 var last_sleep_was_pass_out: bool = false
 var pass_out_count: int = 0
@@ -208,6 +217,46 @@ func get_monster(uid: String) -> RefCounted:
 	return null
 
 
+## GDD opening: the chosen Assessment monster becomes the player's first
+## monster and decides the farm's starting biome; DECISIONS.md: that biome's
+## habitat is already built. GDD: a wild-caught monster lives in its biome's
+## habitat until bonded, so it goes there unless `join_party` (party of 2
+## comes from the barn in Slice 3).
+func complete_assessment(m: RefCounted, join_party: bool = false) -> void:
+	if m == null:
+		return
+	var biome: int = m.origin_biome
+	if farm_biome < 0 and biome >= 0:
+		farm_biome = biome
+		build_habitat(biome)
+	add_monster(m, join_party)
+	if not party.has(m):
+		var hab := get_habitat(biome)
+		m.home = StringName(hab.id) if not hab.is_empty() else &"pasture"
+	assessment_done = true
+	assessment_completed.emit(m)
+
+
+## Marks the habitat for `biome` as built (data from HabitatData). Returns the
+## state entry.
+func build_habitat(biome: int) -> Dictionary:
+	var existing := get_habitat(biome)
+	if not existing.is_empty():
+		existing.built = true
+		return existing
+	var data := HabitatData.for_biome(biome)
+	var entry := {"id": String(data.id) if data else "habitat_%d" % biome, "biome": biome, "built": true}
+	habitats.append(entry)
+	return entry
+
+
+func get_habitat(biome: int) -> Dictionary:
+	for h in habitats:
+		if int(h.biome) == biome:
+			return h
+	return {}
+
+
 func get_party_max() -> int:
 	var cfg := load(MONSTER_CONFIG_PATH) as MonsterConfig
 	return cfg.party_max if cfg else 2
@@ -219,6 +268,9 @@ func to_dict() -> Dictionary:
 		"inventory": inventory.to_array(),
 		"monsters": monsters.map(func(m): return m.to_dict()),
 		"party": party.map(func(m): return m.uid),
+		"farm_biome": farm_biome,
+		"habitats": habitats.duplicate(true),
+		"assessment_done": assessment_done,
 		"health": health,
 		"stamina": stamina,
 		"last_sleep_was_pass_out": last_sleep_was_pass_out,
@@ -241,6 +293,13 @@ func from_dict(data: Dictionary) -> void:
 		if m and not party.has(m) and party.size() < get_party_max():
 			party.append(m)
 	monsters_changed.emit()
+	farm_biome = int(data.get("farm_biome", -1))
+	habitats = []
+	for h in data.get("habitats", []):
+		if h is Dictionary:
+			habitats.append({"id": String(h.get("id", "")), "biome": int(h.get("biome", -1)),
+				"built": bool(h.get("built", false))})
+	assessment_done = bool(data.get("assessment_done", false))
 	_set_health(float(data.get("health", energy_config.max_health)))
 	_set_stamina(float(data.get("stamina", energy_config.max_stamina)))
 	last_sleep_was_pass_out = bool(data.get("last_sleep_was_pass_out", false))

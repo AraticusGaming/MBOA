@@ -107,3 +107,33 @@ follow `docs/creatures/cinderkin.md` and its rulings (Woodland, Wet Waxweed, wil
 | Skills | none defined; stored as ids | `Monster.skills` |
 | Blue-flame Cinderkin | any S-rank Cinderkin is the blue-flame variant | `cinderkin.tres` `rank_variants` |
 | Party bond drop | applies to `PlayerState.party` monsters when non-zero; stays 0 | `pass_out_config.tres` |
+
+## Assessment room (Slice 2)
+GDD-exact: 5 traps from Angie, rank odds D 79% / C 20% / B 1% (no A/S in the Assessment), creatures wander and show
+their rank, a lured creature is caught (trap shakes) or knocks the trap over and the bait is gone, keep or release
+after a catch, the player may stop after one capture or choose among captures. DECISIONS/ROADMAP: one Woodland room
+only; the first captured monster sets the farm's starting biome with that biome's habitat pre-built.
+
+| Item | Value | Where |
+|------|-------|-------|
+| How the room is reached | a placeholder portal on the farm (bottom left); the opening, the Association and character creation are skipped | `scenes/world/assessment_door.tscn`, `farm.tscn` |
+| Door after the first monster | closed (`repeatable` off) | `AssessmentDoor.repeatable` |
+| Creatures in the room | 6, any wild-catchable Woodland species, equal weights | `woodland.tres` `creature_count`, `species_weights` |
+| Room size, movement | room rect 592x280 px, wander 24 px/s, re-pick direction every ~1.6 s, 30% idle | `woodland.tres` |
+| Lure | a creature within 44 px of a set trap walks to it at 30 px/s | `lure_radius`, `lure_speed` |
+| Catch chance | 65% (fail = trap knocked over, creature spooked 4 s) | `catch_chance`, `spooked_seconds` |
+| Shake before a catch is confirmed | 1.2 s | `shake_seconds` |
+| Failed traps | spent (count against the 5) | `AssessmentSession` |
+| Bait | traps come pre-baited; no bait item is used up | `AssessmentSession.place_trap()` |
+| All 5 traps used with no capture | Angie hands over 5 more | `refill_when_empty` |
+| Trap placement | interact sets a trap 14 px in front of the player; a click within 40 px also works; traps 14 px apart | `place_reach`, `min_trap_spacing` |
+| Time | the clock is paused inside the room | `pause_clock` |
+| Where the first monster goes | its biome habitat (GDD: wild-caught monsters live in their habitat until bonded), not the party | `first_monster_joins_party` |
+| Exit without choosing | allowed (exit stone); the Assessment stays open | `AssessmentRoom.leave()` |
+
+## Habitats (Slice 2 stub)
+| Item | Value | Where |
+|------|-------|-------|
+| Habitat data | one per starter biome, capacity 12 (GDD), no build materials yet | `resources/habitats/*.tres` |
+| Habitat on the farm | state only (`PlayerState.habitats`); no placement or art until Slice 3 | `PlayerState.build_habitat()` |
+| Farm biome | `PlayerState.farm_biome`, set once by the first monster | `PlayerState.complete_assessment()` |

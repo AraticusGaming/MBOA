@@ -1,0 +1,11 @@
+[gd_resource type="Resource" script_class="HabitatData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/farm/habitat_data.gd" id="1_hab"]
+
+[resource]
+script = ExtResource("1_hab")
+id = &"meadowlands_habitat"
+display_name = "Meadowlands Habitat"
+biome = 0
+capacity = 12
+build_materials = {}

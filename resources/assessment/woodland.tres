@@ -1,0 +1,25 @@
+[gd_resource type="Resource" script_class="AssessmentConfig" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/creatures/assessment_config.gd" id="1_cfg"]
+
+[resource]
+script = ExtResource("1_cfg")
+biome = 1
+trap_count = 5
+rank_weights = {"B": 1.0, "C": 20.0, "D": 79.0}
+species_weights = {}
+creature_count = 6
+room_rect = Rect2(24, 56, 592, 280)
+creature_speed = 24.0
+wander_change_seconds = 1.6
+idle_chance = 0.3
+lure_radius = 44.0
+lure_speed = 30.0
+catch_chance = 0.65
+shake_seconds = 1.2
+spooked_seconds = 4.0
+min_trap_spacing = 14.0
+place_reach = 40.0
+refill_when_empty = true
+first_monster_joins_party = false
+pause_clock = true
