@@ -14,6 +14,7 @@ config/features=PackedStringArray("4.3", "GL Compatibility")
 [autoload]
 
 Clock="*res://scripts/core/game_clock.gd"
+PlayerState="*res://scripts/core/player_state.gd"
 
 [display]
 

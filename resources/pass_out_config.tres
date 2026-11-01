@@ -1,0 +1,10 @@
+[gd_resource type="Resource" script_class="PassOutConfig" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/core/pass_out_config.gd" id="1_passout"]
+
+[resource]
+script = ExtResource("1_passout")
+wake_hour_delay = 0.0
+energy_penalty_fraction = 0.0
+gold_penalty_fraction = 0.0
+gold_penalty_max = 0

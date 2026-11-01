@@ -40,6 +40,9 @@ signal paused_changed(paused: bool)
 var config: ClockConfig
 ## Placeholder (unused) climate data, see ClimateConfig.
 var climate: ClimateConfig
+## Pass-out penalties (open design question). Clock applies wake_hour_delay;
+## the PlayerState autoload applies the rest.
+var pass_out_config: PassOutConfig
 
 ## Current game day, 1-based, counted from the start of the save.
 var day: int = 1
@@ -50,6 +53,8 @@ var year: int = 1
 var phase: Phase = Phase.DAY
 var is_tired: bool = false
 var is_sleeping: bool = false
+## True if the last day ended by passing out rather than sleeping.
+var last_sleep_was_pass_out: bool = false
 ## Mirrors config.time_scale at start; change at runtime (debug keys).
 var time_scale: float = 1.0
 
@@ -63,6 +68,7 @@ var _last_hour: int = -1
 func _init() -> void:
 	config = _load_or_default(CONFIG_PATH, ClockConfig) as ClockConfig
 	climate = _load_or_default(CLIMATE_PATH, ClimateConfig) as ClimateConfig
+	pass_out_config = _load_or_default(PASS_OUT_CONFIG_PATH, PassOutConfig) as PassOutConfig
 	_on_config_loaded()
 	_reset_to_day(1)
 
@@ -212,6 +218,7 @@ func to_dict() -> Dictionary:
 		"midnight_fired": _midnight_fired,
 		"pass_out_fired": _pass_out_fired,
 		"time_scale": time_scale,
+		"last_sleep_was_pass_out": last_sleep_was_pass_out,
 	}
 
 
@@ -223,6 +230,7 @@ func from_dict(data: Dictionary) -> void:
 	_midnight_fired = bool(data.get("midnight_fired", is_tired))
 	_pass_out_fired = bool(data.get("pass_out_fired", false))
 	time_scale = float(data.get("time_scale", config.time_scale))
+	last_sleep_was_pass_out = bool(data.get("last_sleep_was_pass_out", false))
 	is_sleeping = false
 	_update_calendar()
 	phase = _phase_for_hour(fmod(get_hours_float(), 24.0))
@@ -249,6 +257,7 @@ func _reset_to_day(new_day: int) -> void:
 
 
 func _finish_sleep(pass_out: bool) -> void:
+	last_sleep_was_pass_out = pass_out
 	day_ended.emit(day, pass_out)
 	var old_season := season
 	var old_year := year
@@ -264,9 +273,11 @@ func _finish_sleep(pass_out: bool) -> void:
 	day_started.emit(day)
 
 
-## Extra minutes added to wake time after sleeping. Base clock: none.
-## (Pass-out penalties extend this in step 3.)
-func _get_wake_delay_minutes(_pass_out: bool) -> float:
+## Extra minutes added to wake time: PassOutConfig.wake_hour_delay after a
+## pass-out (placeholder, default 0), none after normal sleep.
+func _get_wake_delay_minutes(pass_out: bool) -> float:
+	if pass_out and pass_out_config:
+		return maxf(pass_out_config.wake_hour_delay, 0.0) * MINUTES_PER_HOUR
 	return 0.0
 
 
