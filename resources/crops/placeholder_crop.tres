@@ -1,0 +1,10 @@
+[gd_resource type="Resource" script_class="CropData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/farm/crop_data.gd" id="1_crop"]
+
+[resource]
+script = ExtResource("1_crop")
+id = &"placeholder_crop"
+display_name = "Placeholder Crop"
+days_to_mature = 3
+placeholder_color = Color(0.95, 0.75, 0.2, 1)

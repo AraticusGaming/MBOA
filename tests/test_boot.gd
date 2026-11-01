@@ -1,0 +1,53 @@
+extends MboaTestBase
+## Boot check: loads the main scene headless, runs some frames, and exercises
+## the player/HUD wiring. Fails on missing nodes; run_all.sh also fails on any
+## SCRIPT ERROR printed while running.
+
+const MAIN_SCENE := "res://scenes/main/main.tscn"
+
+
+func _run_tests() -> void:
+	check_eq(ProjectSettings.get_setting("application/run/main_scene"), MAIN_SCENE,
+		"main_scene is set")
+	var clock := root.get_node_or_null("Clock") as GameClock
+	check(clock != null, "Clock autoload present")
+	for action in ["move_up", "move_down", "move_left", "move_right", "interact",
+			"tool_1", "tool_2", "tool_3", "cancel",
+			"debug_time_x1", "debug_time_x10", "debug_time_x60", "debug_sleep"]:
+		check(InputMap.has_action(action), "input action '%s'" % action)
+	var packed := load(MAIN_SCENE) as PackedScene
+	check(packed != null, "main scene loads")
+	if packed == null:
+		return
+	var main := packed.instantiate()
+	root.add_child(main)
+	for i in 10:
+		await process_frame
+	var player := main.get_node_or_null("Farm/Player") as Player
+	var grid := main.get_node_or_null("Farm/FarmGrid") as FarmGrid
+	var hud := main.get_node_or_null("HUD") as Hud
+	check(player != null and grid != null and hud != null, "player, farm grid and HUD exist")
+	check(main.get_node_or_null("DayNightTint") is CanvasModulate, "night tint CanvasModulate exists")
+	if player == null or grid == null or hud == null or clock == null:
+		return
+	check(player.farm_grid == grid, "player wired to farm grid")
+	check(not grid.crops.is_empty(), "farm grid has crops")
+	var t0 := clock.time_minutes
+	for i in 5:
+		await process_frame
+	check(clock.time_minutes > t0, "clock advances while the scene runs")
+	check(hud.get_node("%TimeLabel").text == clock.get_time_string(), "HUD shows clock time")
+	# Drive a tool use through the player on its faced cell.
+	player.global_position = grid.cell_to_world_center(Vector2i(3, 0)) + Vector2(0, 7)
+	player.facing = Vector2i.DOWN
+	await physics_frame
+	check_eq(player.get_target_cell(), Vector2i(3, 1), "player targets faced cell")
+	player.set_tool(FarmTools.Tool.HOE)
+	check(player.interact(), "player tills faced cell")
+	check_eq(grid.get_plot(Vector2i(3, 1)).state, FarmPlot.State.TILLED, "faced cell tilled")
+	check(player.tap_at(grid.cell_to_world_center(Vector2i(4, 1))), "tap on adjacent cell acts")
+	check(not player.tap_at(grid.cell_to_world_center(Vector2i(9, 7))), "tap out of reach ignored")
+	await process_frame
+	check(hud.get_node("%ToolLabel").text.contains("Hoe"), "HUD shows current tool")
+	main.queue_free()
+	await process_frame

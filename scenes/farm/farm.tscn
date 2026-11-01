@@ -1,0 +1,27 @@
+[gd_scene load_steps=6 format=3]
+
+[ext_resource type="Script" path="res://scripts/farm/farm_grid.gd" id="1_grid"]
+[ext_resource type="Resource" path="res://resources/crops/placeholder_crop.tres" id="2_crop"]
+[ext_resource type="PackedScene" path="res://scenes/world/player.tscn" id="3_player"]
+[ext_resource type="Script" path="res://scripts/farm/crop_data.gd" id="4_cropdata"]
+[ext_resource type="PackedScene" path="res://scenes/world/bed.tscn" id="5_bed"]
+
+[node name="Farm" type="Node2D"]
+
+[node name="Ground" type="ColorRect" parent="."]
+offset_right = 640.0
+offset_bottom = 360.0
+mouse_filter = 2
+color = Color(0.3, 0.47, 0.23, 1)
+
+[node name="FarmGrid" type="Node2D" parent="."]
+position = Vector2(224, 144)
+script = ExtResource("1_grid")
+crops = Array[ExtResource("4_cropdata")]([ExtResource("2_crop")])
+
+[node name="Bed" parent="." instance=ExtResource("5_bed")]
+position = Vector2(96, 112)
+
+[node name="Player" parent="." instance=ExtResource("3_player")]
+position = Vector2(320, 128)
+farm_grid_path = NodePath("../FarmGrid")
