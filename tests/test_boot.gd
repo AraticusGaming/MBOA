@@ -12,7 +12,7 @@ func _run_tests() -> void:
 	var clock := root.get_node_or_null("Clock") as GameClock
 	check(clock != null, "Clock autoload present")
 	for action in ["move_up", "move_down", "move_left", "move_right", "interact",
-			"tool_1", "tool_2", "tool_3", "cancel",
+			"tool_1", "tool_2", "tool_3", "tool_4", "tool_5", "cancel",
 			"debug_time_x1", "debug_time_x10", "debug_time_x60", "debug_sleep"]:
 		check(InputMap.has_action(action), "input action '%s'" % action)
 	var packed := load(MAIN_SCENE) as PackedScene
@@ -42,12 +42,20 @@ func _run_tests() -> void:
 	player.facing = Vector2i.DOWN
 	await physics_frame
 	check_eq(player.get_target_cell(), Vector2i(3, 1), "player targets faced cell")
-	player.set_tool(FarmTools.Tool.HOE)
+	check_eq(player.tools.size(), 5, "hotbar: Pulaski, sickle, pickaxe, watering can, seeds")
+	check(player.select_tool_by_id(&"pulaski") or player.current_tool.id == &"pulaski", "select Pulaski")
 	check(player.interact(), "player tills faced cell")
 	check_eq(grid.get_plot(Vector2i(3, 1)).state, FarmPlot.State.TILLED, "faced cell tilled")
 	check(player.tap_at(grid.cell_to_world_center(Vector2i(4, 1))), "tap on adjacent cell acts")
 	check(not player.tap_at(grid.cell_to_world_center(Vector2i(9, 7))), "tap out of reach ignored")
 	await process_frame
-	check(hud.get_node("%ToolLabel").text.contains("Hoe"), "HUD shows current tool")
+	check(hud.get_node("%ToolLabel").text.contains("Pulaski"), "HUD shows current tool")
+	check_eq(hud.get_node("%ToolButtons").get_child_count(), 5, "HUD builds one button per hotbar slot")
+	var trees := 0
+	for y in grid.grid_size.y:
+		for x in grid.grid_size.x:
+			if grid.get_farm_tree(Vector2i(x, y)):
+				trees += 1
+	check(trees > 0, "farm starts with trees")
 	main.queue_free()
 	await process_frame
