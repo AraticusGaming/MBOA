@@ -44,6 +44,9 @@ one pixel scale. Colored (plum-brown / dark green / dark red) outlines, never pu
   background, the trap sheet and the bait icon (optional `--preview DIR`; `preview_slice3.py`
   renders a tiling test and a mock room with traps, bait, player and Cinderkin).
   `python3 tools/art/palette.py` rewrites the swatch after palette changes.
+- `python3 tools/art/gen_slice3_creatures.py` writes the Woodland creature sheets and portraits
+  (moss_bun, blue_jay, bramble_cub). It takes an optional `--preview DIR`, and
+  `preview_slice3_creatures.py` renders the 8x previews and a line-up next to the Cinderkin.
 
 ## Godot import
 Use nearest filtering (already set in `project.godot`), no mipmaps, integer scaling.
@@ -340,6 +343,42 @@ matches an item/tile; 32x32 would make it as big as a creature.
 Bait: a tied cloth pouch with berries peeking out and a little sparkle. The GDD names no
 specific bait item (crops or crops turned into biome bait), so this is the generic basic bait
 icon. Visible (2,0)-(14,15); centered in the 16x16 slot like the other item icons.
+
+## Woodland creatures (slice 3): moss_bun, blue_jay, bramble_cub
+Three more Woodland creatures in the **Cinderkin layout**. The docs name only Crow and Blue Jay
+as Woodland birds, so the bird is the existing `blue_jay` species. The Critter and the Beast
+are ART proposals (`docs/creatures/moss_bun.md`, `docs/creatures/bramble_cub.md`); Ledan may
+rename them. No palette colors were added (indices 0-41 only).
+
+| species | family | sheet (256x128) | portrait (64x64) | look / color identity |
+|---------|--------|-----------------|------------------|-----------------------|
+| moss_bun | Critter | assets/sprites/moss_bun.png | assets/portraits/moss_bun_portrait.png | small lop-eared rabbit: fawn `tan`/`sand` fur, cream belly, moss cap with a sprout, moss ear tips (green on fawn) |
+| blue_jay | Bird | assets/sprites/blue_jay.png | assets/portraits/blue_jay_portrait.png | round crested songbird: `blue` family, white face and belly, black necklace, barred wings/tail (blue on white) |
+| bramble_cub | Beast | assets/sprites/bramble_cub.png | assets/portraits/bramble_cub_portrait.png | chunky bear cub on all fours: `brown_mid` fur, tan muzzle, cream chest crescent, bramble crown with red berries (brown + red/green) |
+
+- 32x32 frames, 8 columns x 4 rows. Rows: 0 = down, 1 = left, 2 = right (pixel mirror of
+  left), 3 = up. Columns 0-3 = idle, 4-7 = walk/move. Frame index = row * 8 + col (idle down
+  0-3, walk down 4-7, idle left 8-11, walk left 12-15, idle right 16-19, walk right 20-23,
+  idle up 24-27, walk up 28-31), the same as cinderkin.png.
+- Speeds: idle 6 fps, walk 8 fps, both looping.
+- Pivot bottom-center (16, 32): AnimatedSprite2D `centered = true`, `offset = (0, -16)`, with the
+  node at the creature's feet. Grounded frames stand on y = 31.
+- Idle: 1 px breathing dip on frames 3-4 (bob 0,0,1,1), plus a blink (bun/cub frame 4, jay
+  frame 3), the bun's nose twitch, the jay's crest sway and tail flick, and the cub's ear flick.
+- Walk:
+  - **moss_bun hops**: crouch, then a push-off (feet stretched, 2 px up), airborne
+    (tucked, 3 px up), and landing (1 px up). The feet leave y = 31 on cols 5-7 by design.
+  - **blue_jay hop-flutters**: crouch, then wings out (2 px up), wings raised (3 px up), and
+    wings out on landing (1 px up). Legs tuck in the air. There is no flight row; it was skipped
+    to keep the 256x128 layout (a row 4 could be appended later without moving indices).
+  - **bramble_cub lumbers**: alternating strides (front paw lifts in down/up; legs scissor in
+    the side view) with a 1 px body dip on the passing frames. Feet stay on y = 31.
+- Size feel: the bun is the smallest (body about 14 px wide, fits one tile). The jay is a
+  compact bird whose body starts 4 px lower than the frame top, leaving headroom for its hops.
+  The cub fills about 30x31 px and reads as the heavy one. All of them share the Cinderkin
+  pivot, so they line up on the same ground line.
+- Portraits: bust/face, transparent background, same palette and lighting as
+  cinderkin_portrait.png.
 
 ## Coming later
 - Starter monsters default to **32x32** frames and follow the Cinderkin sheet layout

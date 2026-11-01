@@ -14,6 +14,8 @@ const WOODLAND_ART := {
 	"res://assets/sprites/trap_basic.png": Vector2i(64, 16),
 	"res://assets/sprites/item_bait.png": Vector2i(16, 16),
 }
+## Slice 3 Woodland creatures: 256x128 sheets (Cinderkin layout) + 64x64 portraits.
+const WOODLAND_CREATURES := ["moss_bun", "blue_jay", "bramble_cub"]
 
 
 func _run_tests() -> void:
@@ -22,6 +24,7 @@ func _run_tests() -> void:
 	_test_crop_frames()
 	_test_farm_tiles()
 	_test_woodland_art()
+	_test_woodland_creatures()
 	await _test_player_animation()
 
 
@@ -66,6 +69,60 @@ func _test_woodland_art() -> void:
 	var cfg := load("res://resources/assessment/woodland.tres") as AssessmentConfig
 	check(cfg != null and Rect2(0, 0, 640, 360).encloses(cfg.room_rect),
 		"room_rect fits inside the 640x360 background")
+
+
+func _alpha_binary(img: Image) -> bool:
+	for y in img.get_height():
+		for x in img.get_width():
+			var a := img.get_pixel(x, y).a8
+			if a != 0 and a != 255:
+				return false
+	return true
+
+
+func _test_woodland_creatures() -> void:
+	for n in WOODLAND_CREATURES:
+		var sheet := load("res://assets/sprites/%s.png" % n) as Texture2D
+		var portrait := load("res://assets/portraits/%s_portrait.png" % n) as Texture2D
+		check(sheet != null and portrait != null, "%s sheet + portrait load" % n)
+		if sheet == null or portrait == null:
+			continue
+		check_eq(Vector2i(sheet.get_size()), Vector2i(256, 128), "%s.png size (8x4 frames of 32x32)" % n)
+		check_eq(Vector2i(portrait.get_size()), Vector2i(64, 64), "%s_portrait.png size" % n)
+		var img := sheet.get_image()
+		if img.is_compressed():
+			img.decompress()
+		var pimg := portrait.get_image()
+		if pimg.is_compressed():
+			pimg.decompress()
+		check(_alpha_binary(img) and _alpha_binary(pimg), "%s alpha is only 0 or 255" % n)
+		check(pimg.detect_alpha() != Image.ALPHA_NONE, "%s portrait background is transparent" % n)
+		var empty := 0
+		for i in 32:
+			var r := img.get_region(Rect2i((i % 8) * 32, (i / 8) * 32, 32, 32))
+			if r.get_used_rect().size == Vector2i.ZERO:
+				empty += 1
+		check_eq(empty, 0, "%s: all 32 frames drawn" % n)
+		# Row 2 (right) is the mirror of row 1 (left).
+		var left := img.get_region(Rect2i(0, 32, 256, 32))
+		var right := img.get_region(Rect2i(0, 64, 256, 32))
+		left.flip_x()  # frame i of the flipped row is frame 7 - i, so compare frame-wise
+		var mirrored := true
+		for y in 32:
+			for x in 256:
+				var src := left.get_pixel((7 - x / 32) * 32 + x % 32, y)
+				var dst := right.get_pixel(x, y)
+				# fix_alpha_border changes RGB under transparent pixels; compare visible ones
+				if src.a8 != dst.a8 or (src.a8 > 0 and src != dst):
+					mirrored = false
+		check(mirrored, "%s: right row mirrors left" % n)
+		# Idle frames stand on the bottom row (pivot bottom-center (16, 32)).
+		var grounded := true
+		for row in 4:
+			var f := img.get_region(Rect2i(0, row * 32, 32, 32)).get_used_rect()
+			if f.end.y != 32:
+				grounded = false
+		check(grounded, "%s: idle frames touch y = 31" % n)
 
 
 func _test_player_frames() -> void:
