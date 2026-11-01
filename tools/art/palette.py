@@ -1,7 +1,7 @@
-"""MBOA master palette (32 colors). All game art must use ONLY these colors
+"""MBOA master palette (32 base colors + 6 ember colors, 38 total). All game art must use ONLY these colors
 (plus fully transparent pixels). Warm, slightly desaturated, cozy 16-bit look.
 
-Run directly to regenerate tools/art/palette.png (8x4 grid of 16x16 swatches,
+Run directly to regenerate tools/art/palette.png (8-column grid of 16x16 swatches,
 index order left-to-right, top-to-bottom)."""
 from pathlib import Path
 
@@ -39,6 +39,13 @@ PALETTE = [
     ("blue_light",   "#7fa8d4"),  # 29
     ("pink",         "#d97c8e"),  # 30
     ("white_warm",   "#fffaf0"),  # 31
+    # --- ember extension (Cinderkin, appended; indices 0-31 never change) ---
+    ("ember_deep",   "#c23b22"),  # 32 deep red-orange, flame edges
+    ("ember_orange", "#f26b2a"),  # 33 hot orange, flame body
+    ("ember_amber",  "#ffa23a"),  # 34 amber, flame mid / eyes
+    ("ember_yellow", "#ffd25a"),  # 35 bright yellow, flame core
+    ("ember_cream",  "#fff2c2"),  # 36 pale yellow-cream, hottest highlight
+    ("ember_glow",   "#e8894e"),  # 37 soft glow orange, ear interiors / membranes
 ]
 
 def _rgb(h):
