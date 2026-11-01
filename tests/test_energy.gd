@@ -39,11 +39,17 @@ func _test_state() -> void:
 	check(not ps.spend_stamina(1.0), "can't spend at 0")
 	check_eq(ps.get_speed_multiplier(), ps.energy_config.exhausted_speed_multiplier, "slowed at 0")
 	ps.eat()
-	check_eq(ps.stamina, ps.energy_config.eat_stamina_refill, "eating: flat refill (placeholder)")
-	check_eq(ps.energy_config.eat_stamina_refill, 25.0, "placeholder eat refill 25")
-	ps.rest_in_hot_spring()
-	check_eq(ps.stamina, 25.0 + ps.energy_config.hot_spring_stamina_refill,
-		"hot spring: flat refill (placeholder)")
+	check_eq(ps.stamina, ps.energy_config.eat_stamina_refill, "eating without a food value: fallback refill")
+	check_eq(ps.energy_config.eat_stamina_refill, 25.0, "placeholder fallback eat refill 25")
+	var rate: float = ps.energy_config.hot_spring_stamina_per_second
+	check(rate > 0.0, "hot spring: steady rate (placeholder)")
+	for i in 4:
+		ps.soak_in_hot_spring(0.5)
+	check(is_equal_approx(ps.stamina, 25.0 + rate * 2.0), "hot spring: 2 s of soaking = 2 x rate")
+	ps.soak_in_hot_spring(1000.0)
+	check_eq(ps.stamina, 100.0, "hot spring refill caps at max")
+	check(is_equal_approx(ps.pass_out_config.reputation_penalty, 0.02),
+		"pass-out reputation penalty 0.02 (placeholder, inactive)")
 	ps.refill_stamina(0.0)
 	ps.spend_stamina(1000.0)
 	ps.eat(10.0)

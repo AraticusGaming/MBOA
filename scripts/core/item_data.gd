@@ -24,6 +24,9 @@ enum Kind { MATERIAL, SEED, CROP, FOOD }
 @export var crop_id: StringName = &""
 ## True if the player can eat it (flat stamina refill, see EnergyConfig).
 @export var edible: bool = false
+## Stamina refilled when the player eats one (DECISIONS.md: refill depends
+## on the food). Placeholder values; -1 = EnergyConfig.eat_stamina_refill.
+@export var stamina_refill: float = -1.0
 ## Placeholder icon color (no item art yet).
 @export var color: Color = Color(0.8, 0.8, 0.8)
 

@@ -185,7 +185,9 @@ func _test_eat_item() -> void:
 	p.set_tool(p.tools.size())  # first item slot
 	check_eq(p.get_current_item().id, &"turnip", "turnip selected on the hotbar")
 	check(p.eat_current_item(), "eat the turnip")
-	check_eq(ps.stamina, 50.0 + ps.energy_config.eat_stamina_refill, "flat eat refill")
+	var turnip := ItemCatalog.get_default().get_item(&"turnip")
+	check(turnip.stamina_refill > 0.0, "turnip has its own refill value")
+	check_eq(ps.stamina, 50.0 + turnip.stamina_refill, "eating refills by the food's value")
 	check_eq(ps.inventory.count(&"turnip"), 0, "turnip consumed")
 	check(not p.eat_current_item(), "nothing left to eat")
 	# Drops from the farm (wood from trees, stone from rocks) go to the inventory.

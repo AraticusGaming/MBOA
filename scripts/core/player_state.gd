@@ -113,20 +113,22 @@ func refill_stamina(amount: float = -1.0) -> void:
 	_set_stamina(energy_config.max_stamina if amount < 0.0 else stamina + amount)
 
 
-## GDD: eating food refills stamina. Not GDD, placeholder (Ledan ruling): a
-## flat refill of energy_config.eat_stamina_refill; pass stamina_amount >= 0 to
-## override. Health outside battle stays a stub (GDD open question).
+## GDD: eating food refills stamina. DECISIONS.md: the refill depends on the
+## food (Player passes ItemData.stamina_refill); stamina_amount < 0 uses the
+## placeholder fallback energy_config.eat_stamina_refill. Health outside
+## battle stays a stub (on hold per DECISIONS.md).
 func eat(stamina_amount: float = -1.0, health_amount: float = 0.0) -> void:
 	refill_stamina(energy_config.eat_stamina_refill if stamina_amount < 0.0 else stamina_amount)
 	if health_amount > 0.0:
 		heal(health_amount)
 
 
-## GDD: resting in a hot spring refills stamina. Not GDD, placeholder (Ledan
-## ruling): a flat refill of energy_config.hot_spring_stamina_refill per rest.
-## No hot spring is placed in the world yet.
-func rest_in_hot_spring() -> void:
-	refill_stamina(energy_config.hot_spring_stamina_refill)
+## GDD: resting in a hot spring refills stamina. DECISIONS.md: at a steady
+## rate; call every frame/tick while soaking with the elapsed seconds
+## (rate: energy_config.hot_spring_stamina_per_second, placeholder). No hot
+## spring is placed in the world yet.
+func soak_in_hot_spring(delta_seconds: float) -> void:
+	refill_stamina(energy_config.hot_spring_stamina_per_second * maxf(delta_seconds, 0.0))
 
 
 ## Health hooks (what health does outside battle is a GDD open question).

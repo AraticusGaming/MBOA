@@ -240,7 +240,7 @@ func eat_current_item() -> bool:
 	if item == null or not item.edible or player_state == null:
 		return false
 	player_state.inventory.remove_from_slot(current_item_slot, 1)
-	player_state.eat()
+	player_state.eat(item.stamina_refill)
 	return true
 
 

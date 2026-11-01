@@ -12,9 +12,11 @@ extends Resource
 ## (Ledan ruling: 50%). It does NOT stack with the tired multiplier: the
 ## player moves at the worse (minimum) of the two (see docs/PLACEHOLDERS.md).
 @export_range(0.05, 1.0, 0.05) var exhausted_speed_multiplier: float = 0.5
-## Flat stamina refill for eating food. Not GDD, placeholder (Ledan ruling:
-## flat refill, amount to be confirmed).
+## Fallback stamina refill for food with no value of its own. DECISIONS.md:
+## eating refills depending on the food eaten; each food sets
+## ItemData.stamina_refill (values are placeholders until food values come).
 @export_range(0.0, 100.0, 1.0) var eat_stamina_refill: float = 25.0
-## Flat stamina refill for one rest in a hot spring. Not GDD, placeholder
-## (Ledan ruling: flat refill; hot springs are not placed in the world yet).
-@export_range(0.0, 100.0, 1.0) var hot_spring_stamina_refill: float = 50.0
+## DECISIONS.md: the hot spring refills at a steady rate. Stamina per real
+## second while soaking. The rate is a placeholder; hot springs are not
+## placed in the world yet.
+@export_range(0.0, 100.0, 0.5) var hot_spring_stamina_per_second: float = 5.0
