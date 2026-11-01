@@ -33,7 +33,7 @@ Milestone 1 (core loop skeleton):
 - [x] Farm plots: till, plant, water, grow (watered days), harvest (signal only)
 - [x] Sleeping (bed) and pass-out with day rollover and fade-to-black
 - [x] Placeholder tileset and player sprite (ART) integrated: farm tiles, animated player,
-      crop stage sprites (the bed and HUD are still placeholder shapes)
+      crop stage sprites (bed, HUD, fences and paths followed in Slice 3)
 
 Milestone 1.5 (align with the GDD):
 - [x] Clock per ruling (`docs/DECISIONS.md`): wake 6:00 AM, 30 days per season, 60 real
@@ -66,6 +66,21 @@ Milestone 2 = vertical slice Slices 1-2 (`docs/ROADMAP.md`):
 - [ ] Skipped by design: the opening, character creation and the Association; a placeholder
       portal on the farm (bottom left) starts the Assessment instead
 
+Slice 3 = pasture, habitat, barn, bonding (`docs/ROADMAP.md`):
+- [x] Homes as data: pasture 6 and barn 20 stalls (+20 per upgrade, 4 upgrades, 100 max) in
+      `resources/buildings/` (`PenData`); biome habitats 12 (`HabitatData`)
+- [x] Wild monsters go to their biome's habitat if it has room, else the pasture; the M2
+      starting habitat is the habitat pen on the farm
+- [x] Bond bar: barn at 25%, star at 100%; party of 2, taken only from the barn
+- [x] Feeding: favorite food (and Angie's treat) > preferred food type > other; a streak bonus
+      for feeding the favorite day after day; a daily cap (`resources/monsters/care_config.tres`)
+- [x] Day rollover: barn monsters need food and water (bond drop if missed), party members gain
+      passive bond; the pass-out bond drop hits the party when set (still 0)
+- [x] Farm pens (fenced habitat and pasture, placeholder barn) with wandering monsters and a
+      care window (feed, move, water troughs, party, portrait); all saved
+- [x] ART integrated: 56-tile atlas, dirt variants, fence/path autotiles, bed, tool icons,
+      tree stages, Cinderkin sheet and portrait, HUD/hotbar frames
+
 User rulings in `docs/DECISIONS.md` override the GDD. All numbers that neither fixes (phase
 boundaries, crop and tree stage days, stamina costs, slowdowns, penalties...) are
 **placeholders**. Tune them in the `.tres` files in `resources/` or the exported vars in the
@@ -76,11 +91,11 @@ scenes, not in code. GDD-fixed values (four crop stages, tree hits 3 / 6 + 4, ba
 | Action | Keys |
 | --- | --- |
 | Move | WASD / arrow keys |
-| Use tool on faced cell / harvest / sleep at bed / open shop or portal / eat selected food / set a trap | E or Space |
+| Use tool on faced cell / harvest / sleep at bed / open shop, portal, pen or barn / eat selected food / set a trap | E or Space |
 | Select Pulaski / Sickle / Pickaxe / Watering can | 1 / 2 / 3 / 4 (or the HUD buttons) |
 | Select item slot 1-5 (seeds, food...) | 5 / 6 / 7 / 8 / 9 |
 | Act on an adjacent cell / set a trap nearby (mouse / touch) | Left click / tap |
-| Cancel (reserved) | Esc |
+| Close the shop or care window | Esc |
 | Debug: clock speed x1 / x10 / x60 | F1 / F2 / F3 |
 | Debug: sleep now | F4 |
 | Debug: save / load (`user://save_slot_0.json`) | F5 / F9 |
@@ -111,6 +126,11 @@ scenes, not in code. GDD-fixed values (four crop stages, tree hits 3 / 6 + 4, ba
   driven by `AssessmentRoom` (`scenes/world/assessment_room.tscn`) and entered through
   `AssessmentDoor` on the farm. `PlayerState.complete_assessment()` stores the first monster,
   `farm_biome` and the pre-built habitat (`HabitatData`, `resources/habitats/`).
+- Care (Slice 3): `PlayerState` homes (`get_capacity`, `get_residents`, `add_wild_monster`,
+  `move_monster`, `add_to_party`), `feed_monster`, `water_barn`, `apply_daily_care` (on
+  `day_ended`) and `give_angie_gift`; numbers in `CareConfig` (`care_config.tres`) and `PenData`
+  (`resources/buildings/`). On the farm, `MonsterPen` nodes (`Farm/Habitat`, `Pasture`, `Barn`)
+  show residents and open `CareUI` (`scenes/ui/care_ui.tscn`).
 - Items and shop: `ItemData`/`ItemCatalog` (`resources/items/`), `Inventory`, `Shop` + `ShopData`
   (`resources/shop/`), `ShopCounter` on the farm opens `ShopUI`; prices in `economy_config.tres`.
 - UI: `scenes/ui/hud.tscn`; night tint is `DayNightTint` (CanvasModulate) in the main scene.
@@ -124,7 +144,9 @@ godot --headless --path . --script res://tests/test_clock.gd   # single suite
 Suites: `test_clock`, `test_farm` (plots, tools, trees), `test_sleep` (pass-out, bed),
 `test_energy` (health/stamina), `test_save` (SaveManager), `test_stats` (stat letters), `test_items`
 (coins, inventory, shop, eating), `test_monsters` (species, rolls, roster), `test_assessment` (rank odds,
-traps, first monster, farm door), `test_art`, `test_boot` (loads the main scene).
+traps, first monster, farm door), `test_bond` (capacities, moves, thresholds, feeding, party, daily
+tick, pass-out drop, save), `test_pens` (farm pens, care window), `test_art` (atlas, autotile masks,
+asset loading), `test_boot` (loads the main scene).
 
 ## Art integration
 See `assets/ART_NOTES.md` for sheet layouts. Godot-side resources:
@@ -132,12 +154,17 @@ See `assets/ART_NOTES.md` for sheet layouts. Godot-side resources:
   `resources/player_frames.tres` (from `assets/sprites/player_base.png`) are generated by
   `godot --headless --path . --script res://tools/godot/build_art_resources.gd`; rerun it
   if a sheet layout changes. Commit the `.png.import` files (Godot import settings).
-- `resources/farm_tile_mapping.tres`: plot state -> soil tile (empty = dirt, tilled,
-  watered). `FarmGrid` renders soil on a child TileMapLayer and draws crops on top.
+- `resources/farm_tile_mapping.tres`: plot state -> soil tile (empty = dirt with 17/18
+  variants, tilled, watered) and the fence/path autotile bases. `FarmGrid` renders soil on a
+  child TileMapLayer and draws crops on top; `Farm/Decor` (`FarmDecor`) places fences and paths
+  by bitmask (N=1 E=2 S=4 W=8).
 - Crops: each `CropData` (`resources/crops/*.tres`) names its `sprite_sheet`, `frame_size`
   and `stage_frames` (one sheet frame per growth stage, 4 stages; `stage_days` sets how many
   watered days each stage lasts).
-- Trees: no art yet; placeholder rectangles per stage.
+- Trees: `TreeData.sprite_sheet` (`tree_stages.png`, 32x48 per stage).
+- Bed, tool and item icons, the HUD/hotbar frames, and the Cinderkin `SpriteFrames`
+  (`resources/monsters/cinderkin_frames.tres`) and portrait: see `assets/ART_NOTES.md`.
+- Preview renders: `tools/godot/render_slice3_preview.gd` (needs Xvfb).
 - Player: `AnimatedSprite2D` with `idle_`/`walk_` + `down/left/right/up`, offset (0, -16) so
   the feet sit on the node origin.
 - Preview render (needs a display, e.g. Xvfb):
