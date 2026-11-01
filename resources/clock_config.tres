@@ -1,0 +1,20 @@
+[gd_resource type="Resource" script_class="ClockConfig" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/core/clock_config.gd" id="1_clock"]
+
+[resource]
+script = ExtResource("1_clock")
+real_seconds_per_game_hour = 45.0
+time_scale = 1.0
+wake_hour = 6.0
+midnight_hour = 24.0
+pass_out_hour = 26.0
+dawn_start_hour = 5.0
+day_start_hour = 7.0
+dusk_start_hour = 18.0
+night_start_hour = 20.0
+night_darkness = 0.7
+days_per_season = 28
+use_24h = false
+display_minute_step = 10
+sleep_transition_seconds = 0.6

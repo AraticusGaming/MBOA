@@ -10,6 +10,10 @@ config/name="Monster Breeders of Ahymn"
 config/description="Cozy 16-bit farming and creature-taming game."
 config/features=PackedStringArray("4.3", "GL Compatibility")
 
+[autoload]
+
+Clock="*res://scripts/core/game_clock.gd"
+
 [display]
 
 window/size/viewport_width=640
