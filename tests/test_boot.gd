@@ -50,6 +50,11 @@ func _run_tests() -> void:
 	check(not player.tap_at(grid.cell_to_world_center(Vector2i(9, 7))), "tap out of reach ignored")
 	await process_frame
 	check(hud.get_node("%ToolLabel").text.contains("Pulaski"), "HUD shows current tool")
+	await process_frame  # process_frame fires before nodes' _process: wait one more
+	var ps := root.get_node_or_null("PlayerState")
+	check(ps != null and ps.stamina < ps.energy_config.max_stamina, "tool uses spent stamina")
+	check(hud.get_node("%StaminaBar").value == ps.stamina and hud.get_node("%HealthBar").value == ps.health,
+		"HUD stamina and health bars track PlayerState")
 	check_eq(hud.get_node("%ToolButtons").get_child_count(), 5, "HUD builds one button per hotbar slot")
 	var trees := 0
 	for y in grid.grid_size.y:

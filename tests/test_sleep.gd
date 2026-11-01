@@ -17,6 +17,7 @@ func _run_tests() -> void:
 	_test_defaults_are_neutral()
 	_test_pass_out_penalties()
 	_test_voluntary_sleep_restores()
+	_test_stamina_refill_on_sleep()
 	await _test_timed_transition()
 	_test_tired_slowdown()
 	await _test_bed_in_scene()
@@ -67,6 +68,21 @@ func _test_pass_out_penalties() -> void:
 	check(resolved.size() == 1 and resolved[0][0] == true, "sleep_resolved(pass_out=true) once")
 	check_eq(resolved[0][1], {"coins_lost": 20, "party_bond_drop": 5.0}, "penalty report")
 	check_eq(ps.pass_out_count, 1, "pass_out_count")
+	ps.free()
+	clock.free()
+
+
+func _test_stamina_refill_on_sleep() -> void:
+	var clock := make_clock()
+	var ps := _make_state(clock)
+	ps.spend_stamina(70.0)
+	clock.sleep()
+	check_eq(ps.stamina, ps.energy_config.max_stamina, "sleeping refills stamina")
+	ps.spend_stamina(1000.0)
+	check(ps.is_exhausted(), "exhausted")
+	clock.advance_minutes(100000.0)
+	check(ps.last_sleep_was_pass_out and ps.stamina == ps.energy_config.max_stamina,
+		"passing out also refills stamina (GDD penalty is only coins + bond)")
 	ps.free()
 	clock.free()
 

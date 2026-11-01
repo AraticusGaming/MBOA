@@ -1,0 +1,10 @@
+[gd_resource type="Resource" script_class="EnergyConfig" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/core/energy_config.gd" id="1_energy"]
+
+[resource]
+script = ExtResource("1_energy")
+max_health = 100.0
+max_stamina = 100.0
+exhausted_speed_multiplier = 0.5
+hot_spring_stamina_per_game_hour = 50.0

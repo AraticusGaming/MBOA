@@ -1,6 +1,7 @@
 class_name Hud
 extends CanvasLayer
-## Placeholder HUD: day / season / time / phase / tired / current tool, hotbar
+## Placeholder HUD: day / season / time / phase / health + stamina bars
+## (GDD Energy) / tired / exhausted / current tool, hotbar
 ## buttons for mouse & touch (built from Player.tools), and the sleep
 ## fade-to-black transition.
 
@@ -14,12 +15,17 @@ extends CanvasLayer
 @onready var _phase_label: Label = %PhaseLabel
 @onready var _tired_label: Label = %TiredLabel
 @onready var _tool_label: Label = %ToolLabel
+@onready var _health_bar: ProgressBar = %HealthBar
+@onready var _stamina_bar: ProgressBar = %StaminaBar
+@onready var _exhausted_label: Label = %ExhaustedLabel
 @onready var _fade: ColorRect = %Fade
 @onready var _fade_label: Label = %FadeLabel
 @onready var _tool_buttons: HBoxContainer = %ToolButtons
 
 var clock: GameClock
 var player: Player
+## PlayerState autoload (health/stamina); injectable for tests.
+var player_state: Node
 var _fade_tween: Tween
 
 
@@ -29,6 +35,8 @@ func _ready() -> void:
 	if clock:
 		clock.sleep_started.connect(_on_sleep_started)
 		clock.day_started.connect(_on_day_started)
+	if player_state == null:
+		player_state = get_node_or_null("/root/PlayerState")
 	_fade.modulate.a = 0.0
 	_fade.visible = false
 	_bind_player.call_deferred()
@@ -70,6 +78,13 @@ func _refresh() -> void:
 		_time_label.text = clock.get_time_string()
 		_phase_label.text = clock.get_phase_name().capitalize()
 		_tired_label.visible = clock.is_tired
+	if player_state:
+		var cfg: EnergyConfig = player_state.energy_config
+		_health_bar.max_value = cfg.max_health
+		_health_bar.value = player_state.health
+		_stamina_bar.max_value = cfg.max_stamina
+		_stamina_bar.value = player_state.stamina
+		_exhausted_label.visible = player_state.is_exhausted()
 	if player:
 		var tool := player.current_tool
 		_tool_label.text = "Tool: " + (tool.display_name if tool else "-")

@@ -47,6 +47,8 @@ var current_tool: ToolData:
 		return tools[current_slot] if current_slot >= 0 and current_slot < tools.size() else null
 var farm_grid: FarmGrid
 var clock: GameClock
+## PlayerState autoload (stamina); injectable for tests. null = no stamina rules.
+var player_state: Node
 var sprite: AnimatedSprite2D
 var is_moving: bool = false
 var _nearby_beds: Array[Node] = []
@@ -71,6 +73,8 @@ func _ready() -> void:
 		farm_grid = get_node_or_null(farm_grid_path) as FarmGrid
 	if clock == null:
 		clock = get_node_or_null("/root/Clock") as GameClock
+	if player_state == null:
+		player_state = get_node_or_null("/root/PlayerState")
 
 
 func _physics_process(_delta: float) -> void:
@@ -130,7 +134,10 @@ func update_animation() -> void:
 
 func get_current_speed() -> float:
 	var tired := clock != null and clock.is_tired
-	return move_speed * (tired_speed_multiplier if tired else 1.0)
+	var mult := tired_speed_multiplier if tired else 1.0
+	if player_state:
+		mult *= player_state.get_speed_multiplier()  # GDD: slowed at 0 stamina
+	return move_speed * mult
 
 
 ## Selects hotbar slot `slot`.
@@ -188,12 +195,20 @@ func tap_at(global_pos: Vector2) -> bool:
 
 
 ## Harvests a mature crop on `cell` (free), otherwise uses the current tool.
+## GDD: every tool use costs stamina (even one with no effect); at 0 stamina
+## tools can't be used. Seeds are not a tool and cost nothing.
 func act_on_cell(cell: Vector2i) -> bool:
 	if farm_grid == null or not farm_grid.is_in_bounds(cell):
 		return false
 	if farm_grid.is_mature(cell):
 		return farm_grid.harvest(cell) != &""
-	return farm_grid.use_tool(cell, current_tool)
+	var tool := current_tool
+	if tool == null:
+		return false
+	if tool.is_tool and player_state and not player_state.spend_stamina(tool.stamina_cost):
+		farm_grid.action_performed.emit(cell, &"exhausted", false)
+		return false
+	return farm_grid.use_tool(cell, tool)
 
 
 func register_bed(bed: Node, inside: bool) -> void:
