@@ -87,3 +87,23 @@ and the inventory rules below are placeholders.
 | Selling | instant sale at the shop window (no shipping bin / overnight payout yet) | `ShopData.buys_from_player`, `Shop.sell_slot()` |
 | Time pauses while the shop window is open | Stardew rule | `ShopUI` (`Clock.pause(&"shop")`) |
 | Shop hours / closed days | none (always open) | - |
+
+## Monsters (data)
+GDD-exact: the seven families, the four starter biomes, the data fields (species, family, gender, rank D-S, HP/STR/DEF/INT/SPD,
+per-stat letters, bond 0-100%, favorite food, parentage, skills), rank = average of stat letters rounded down, 25% bond
+-> barn, 100% -> star, party of 2, Rockback (Aquatic + Earth, Snouter Roe), Cinderkin (Critter + Fire). Cinderkin details
+follow `docs/creatures/cinderkin.md` and its rulings (Woodland, Wet Waxweed, wild-catchable, blue-flame old variant = S).
+
+| Item | Value | Where |
+|------|-------|-------|
+| Species list | Cinderkin (test creature), Rockback, Robin, Crow, Blue Jay (GDD bird examples), Jumping Spider, Praying Mantis (GDD concepts) | `resources/monsters/species/*.tres`, `species_catalog.tres` |
+| Biomes per species (except Cinderkin) | Crow, Blue Jay, Jumping Spider: Woodland; Robin, Praying Mantis: Meadowlands; Rockback: Marsh + Lake and Coast | `SpeciesData.biomes` |
+| Favorite foods (except Cinderkin, Rockback) | a farm crop each | `SpeciesData.favorite_food_id` |
+| Favorite crop per season | farm crops; none in winter (no winter crops yet) | `SpeciesData.favorite_crops` |
+| Stat ranges | all five stats 1-20 (only the 1-20 bands are decided) | `SpeciesData.stat_bands` |
+| Snouter Roe item | exists for Rockback; not sold or buyable yet | `resources/items/snouter_roe.tres` |
+| Stat roll for a rank | letters = rank +/- 1 (re-rolled until they average to the rank), values uniform in each letter's band | `MonsterConfig.letter_spread`, `MonsterFactory` |
+| Gender odds | 50/50 | `MonsterConfig.female_chance` |
+| Skills | none defined; stored as ids | `Monster.skills` |
+| Blue-flame Cinderkin | any S-rank Cinderkin is the blue-flame variant | `cinderkin.tres` `rank_variants` |
+| Party bond drop | applies to `PlayerState.party` monsters when non-zero; stays 0 | `pass_out_config.tres` |

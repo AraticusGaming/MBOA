@@ -1,0 +1,19 @@
+[gd_resource type="Resource" script_class="SpeciesData" load_steps=3 format=3]
+
+[ext_resource type="Script" path="res://scripts/creatures/species_data.gd" id="1_species"]
+[ext_resource type="Resource" path="res://resources/stats/stat_letters_1_20.tres" id="2_bands"]
+
+[resource]
+script = ExtResource("1_species")
+id = &"robin"
+display_name = "Robin"
+family = 0
+modifier = &""
+biomes = PackedInt32Array(0)
+wild_catchable = true
+favorite_food_id = &"carrot"
+favorite_crops = PackedStringArray("carrot", "tomato", "carrot", "")
+stat_bands = ExtResource("2_bands")
+rank_variants = {}
+variant_names = {}
+color = Color(0.8, 0.45, 0.3, 1)

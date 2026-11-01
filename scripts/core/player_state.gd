@@ -12,7 +12,9 @@ signal health_changed(health: float, max_health: float)
 signal stamina_changed(stamina: float, max_stamina: float)
 ## The inventory's contents changed (forwarded from Inventory.changed).
 signal inventory_changed
+signal monsters_changed
 
+const MONSTER_CONFIG_PATH := "res://resources/monsters/monster_config.tres"
 const PASS_OUT_CONFIG_PATH := "res://resources/pass_out_config.tres"
 const ENERGY_CONFIG_PATH := "res://resources/energy_config.tres"
 const ECONOMY_CONFIG_PATH := "res://resources/economy_config.tres"
@@ -27,9 +29,11 @@ var stamina: float = 100.0
 var coins: int = 0
 ## Items the player carries (stacks; the first slots are on the hotbar).
 var inventory: Inventory
-## Monsters with the player (GDD: up to two from the barn). Empty until
-## monsters exist; any member with add_bond(delta: float) receives the
-## pass-out bonding drop.
+## Every monster the player owns (Monster instances), wherever it lives.
+var monsters: Array = []
+## Monsters with the player (GDD: up to two, MonsterConfig.party_max). Each
+## member with add_bond(delta: float) receives the pass-out bonding drop
+## (0 and inactive by default).
 var party: Array = []
 ## True if the most recent day ended by passing out (2 AM) instead of sleeping.
 var last_sleep_was_pass_out: bool = false
@@ -179,10 +183,42 @@ func apply_sleep(pass_out: bool) -> Dictionary:
 	return penalties
 
 
+# --- Monsters ---------------------------------------------------------------
+
+## Adds a monster to the roster and, if there is room and `to_party`, to the
+## party. Returns true if it joined the party.
+func add_monster(m: RefCounted, to_party: bool = true) -> bool:
+	if m == null:
+		return false
+	if not monsters.has(m):
+		monsters.append(m)
+	var joined := false
+	if to_party and not party.has(m) and party.size() < get_party_max():
+		party.append(m)
+		m.home = &"party"
+		joined = true
+	monsters_changed.emit()
+	return joined
+
+
+func get_monster(uid: String) -> RefCounted:
+	for m in monsters:
+		if m.uid == uid:
+			return m
+	return null
+
+
+func get_party_max() -> int:
+	var cfg := load(MONSTER_CONFIG_PATH) as MonsterConfig
+	return cfg.party_max if cfg else 2
+
+
 func to_dict() -> Dictionary:
 	return {
 		"coins": coins,
 		"inventory": inventory.to_array(),
+		"monsters": monsters.map(func(m): return m.to_dict()),
+		"party": party.map(func(m): return m.uid),
 		"health": health,
 		"stamina": stamina,
 		"last_sleep_was_pass_out": last_sleep_was_pass_out,
@@ -195,6 +231,16 @@ func from_dict(data: Dictionary) -> void:
 	coins_changed.emit(coins)
 	if data.get("inventory") is Array:
 		inventory.from_array(data["inventory"])
+	monsters.clear()
+	party.clear()
+	for md in data.get("monsters", []):
+		if md is Dictionary:
+			monsters.append(Monster.from_dict(md))
+	for uid in data.get("party", []):
+		var m := get_monster(String(uid))
+		if m and not party.has(m) and party.size() < get_party_max():
+			party.append(m)
+	monsters_changed.emit()
 	_set_health(float(data.get("health", energy_config.max_health)))
 	_set_stamina(float(data.get("stamina", energy_config.max_stamina)))
 	last_sleep_was_pass_out = bool(data.get("last_sleep_was_pass_out", false))

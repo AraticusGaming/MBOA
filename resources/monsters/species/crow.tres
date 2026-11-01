@@ -1,0 +1,19 @@
+[gd_resource type="Resource" script_class="SpeciesData" load_steps=3 format=3]
+
+[ext_resource type="Script" path="res://scripts/creatures/species_data.gd" id="1_species"]
+[ext_resource type="Resource" path="res://resources/stats/stat_letters_1_20.tres" id="2_bands"]
+
+[resource]
+script = ExtResource("1_species")
+id = &"crow"
+display_name = "Crow"
+family = 0
+modifier = &""
+biomes = PackedInt32Array(1)
+wild_catchable = true
+favorite_food_id = &"pumpkin"
+favorite_crops = PackedStringArray("turnip", "tomato", "pumpkin", "")
+stat_bands = ExtResource("2_bands")
+rank_variants = {}
+variant_names = {}
+color = Color(0.2, 0.2, 0.25, 1)
