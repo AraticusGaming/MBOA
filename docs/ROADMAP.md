@@ -24,41 +24,34 @@ Order follows the GDD's "Suggested build order" (steps 1-6), with breeding, vill
 - [ ] Display: GDD wants 1920x1080 with a 4K option. The current 640x360 viewport scales by exactly 3x and 6x, so it fits. Keep integer scaling; add UI scale and zoom options later. (Ledan to confirm; no display settings were changed in 1.5)
 - [ ] Art: placed fence and path tiles, bed sprite, Stardew-like HUD frame, more ground variation, more contrast for watered soil. (ART)
 
-## Milestone 2: Food, shop, and the Assessment (build order step 2)
-- [ ] Seasonal crops, shop (seeds), selling crops, Coins (Cody)
-- [ ] Monster data resource: species, family (7), gender, rank D-S, stats HP/STR/DEF/INT/SPD, per-stat letter, bond 0-100%, favorite food, parentage, skills (Cody)
-- [ ] Character creation: name, farm name, gender, body, skin tone, hair, outfit colors (Cody, ART)
-- [ ] Opening: Association letter, arrival, Angie (Cody)
-- [ ] Assessment: pick a Biome room (Meadowlands, Woodland, Marsh, Lake and Coast), 5 traps, random creature movement, rank display, rank odds D 79% / C 20% / B 1%, keep one or use all 5 traps (Cody)
-- [ ] Biome room art, first creatures, trap and bait sprites, Angie portrait (ART)
-- [ ] Farm start state from the first monster's biome, Angie's walkthrough, 20 favorite-food items, 45 favorite seeds (Cody)
+## Direction: creature-loop vertical slice (user confirmed 2026-11-01)
+The GDD's suggested order is a suggestion, not a rule. With limited weekly resources, the next work proves the unique hook:
+Assessment, bond, breed, first baby. Battles, tournaments, village, reputation, world map, and mobile come after the slice.
+Test creature: the Cinderkin (`docs/creatures/cinderkin.md`). Slice simplifications: all breeding produces eggs, fixed hatch time, no climate or recovery timers.
 
-## Milestone 3: Habitats, pasture, barn, bonding (build order step 3)
-- [ ] Pasture (6 spots), habitats (12 monsters each; base version of every biome buildable with the materials and Rowan; the farm starts with the first monster's biome habitat built), barn (20 stalls, 4 upgrades to 100) (Cody)
-- [ ] Bond bar: 25% moves to barn, 100% earns the breeding star; feeding, daily food and water in the barn, party of up to 2 (Cody)
-- [ ] Kitchen and kibble; per-monster random tastes (Cody)
-- [ ] Day 2 with Tom: 5 basic traps, trap recipe, first portal (Cody)
-- [ ] Habitat, barn, pasture art, creature sprites (ART)
+## Slice 1: Food, shop, monster data, Cinderkin
+- [ ] Coins, shop (seeds), selling crops (Cody)
+- [ ] Monster data resource per the GDD (species, family, gender, rank, stats HP/STR/DEF/INT/SPD with per-stat letters, bond, favorite food, parentage) (Cody)
+- [ ] Cinderkin species data (Critter, Woodland, favorite food Wet Waxweed) and the Wet Waxweed crop, which must be planted near trees (Cody)
+- [ ] Cinderkin sprites, portrait, Waxweed icon (ART, branch art/cinderkin)
 
-## Milestone 4: Battles, 1 to 2 creatures (build order step 4)
-- [ ] Turn-based battle, direct or auto control (INT picks auto skills), wild recruit chance after defeat, defeat and Vet revive (Cody)
-- [ ] Battle UI, creature battle sprites, 64x64 portraits (ART)
-- Needs design first: moves, type matchups, damage formula, turn rules.
+## Slice 2: Assessment and the first monster
+- [ ] One biome room (Woodland), 5 traps, random creature movement, rank odds D 79 / C 20 / B 1, keep one or use all 5 (Cody)
+- [ ] First monster sets the farm's starting biome and its habitat is pre-built (Cody)
+- [ ] A few more Woodland creatures and room art (ART)
 
-## Milestone 5: Seasonal tournament (build order step 5)
-- [ ] Optional seasonal tournament; wins give a chance to raise farm rank and size and build a new habitat (Cody)
-- Tournaments gate the story; wins unlock habitat upgrades and may unlock new areas. Base habitats do not need a win. Needs design first: bracket format and which tournaments are story gates.
+## Slice 3: Pasture, barn, bonding
+- [ ] Pasture (6), the starting habitat (12), barn (20 stalls), Bond bar (25% barn, 100% star), feeding, daily food and water, party of 2 (Cody)
+- [ ] Pasture, habitat, barn art (ART)
 
-## Milestone 6: World map and taming (build order step 6)
-- [ ] World map, screen-to-screen travel on the same clock, portals and unlocks (Cody)
-- [ ] Taming by food, battle, and trap (three trap tiers, bait, biome sets) (Cody)
+## Slice 4: Nursery and the first baby
+- [ ] Nursery, opposite-gender pair with stars, Pedigree and modifier, stat inheritance (S+5, A+4, B+2, C+1, D+0), parentage, egg with fixed hatch time, baby with random gender (Cody)
+- [ ] Small family crossing grid (2 families, a few species, diagonal gives Pedigree species) (Cody, user for content)
+- [ ] Egg, baby, and nursery art (ART)
 
-## Milestone 7+: After the GDD build order
-- [ ] Breeding: Nursery, Pedigree and modifier, family crossing grid (7x7), modifiers Plant and Elemental, stat inheritance, parentage, recipes, eggs and pregnancy with climate, recovery timers
-- [ ] Village: Shop, Tavern board, Arena, Job board, Monster Hunter Association, appraisal and egg evaluation
-- [ ] Villagers: 20 named (see `docs/VILLAGERS.md`), friendship hearts, gifts, heart events, dating
-- [ ] Economy, releasing, seasonal festival, reputation (six categories, guarded A and S areas)
-- [ ] Options: UI scale, zoom, colorblind mode, 4K; mobile controls and builds
+## After the slice (order to be revisited)
+- [ ] Battles (1 to 2 creatures, turn-based), tournaments (story-gating), world map, portals, taming by food, battle, and trap
+- [ ] Opening and character creation, village, villagers (`docs/VILLAGERS.md`), reputation, economy, climate and recovery timers, options, mobile
 
 ## Conventions
 - Data in `resources/` as `.tres`; logic in `scripts/`; undecided numbers live in config resources, never hard-coded.
