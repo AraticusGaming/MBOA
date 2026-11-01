@@ -28,6 +28,12 @@ const STAGE_NAMES := ["seed", "seedling", "sapling", "grown", "stump"]
 ## Not GDD, placeholder (Ledan ruling: placeholder growth times as data).
 ## 0 = never advances.
 @export var stage_days: PackedInt32Array = PackedInt32Array([7, 7, 7])
+## Sprite sheet (ART: assets/sprites/tree_stages.png, 32x48 frames: seed,
+## seedling, sapling, grown, stump). null = placeholder rectangles.
+@export var sprite_sheet: Texture2D
+@export var frame_size: Vector2i = Vector2i(32, 48)
+## Sheet frame per Stage (SEED, SEEDLING, SAPLING, GROWN, STUMP).
+@export var stage_frames: PackedInt32Array = PackedInt32Array([0, 1, 2, 3, 4])
 
 ## Item dropped by cutting trees. Not GDD, placeholder (Ledan ruling: trees
 ## drop wood); the amounts below are placeholders too. Seeds and seedlings
@@ -81,3 +87,10 @@ func get_drop_for_stage(stage: int) -> int:
 		Stage.STUMP:
 			return stump_wood
 	return 0
+
+
+## Sheet region for `stage` (empty Rect2 without a sheet).
+func get_frame_region(stage: int) -> Rect2:
+	if sprite_sheet == null or stage < 0 or stage >= stage_frames.size():
+		return Rect2()
+	return Rect2(Vector2(stage_frames[stage] * frame_size.x, 0), Vector2(frame_size))

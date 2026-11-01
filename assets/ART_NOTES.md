@@ -149,19 +149,26 @@ palette; frame it with the dialogue/UI box like the NPC portraits.
   in `assets/sprites/` until there are enough items for an atlas.
 
 ## Godot integration status (Cody)
-- farm_tiles.png -> `resources/farm_tileset.tres` (atlas source 0, tiles 0-12; M1b tiles 13-55
-  are not in the .tres yet: raise `TILE_COUNT` in `tools/godot/build_art_resources.gd` to 56 and
-  skip empty 19-23 when wiring them). Ground uses
-  grass 0-2 (weighted, seeded); plots use 3 dirt / 4 tilled / 5 watered via
-  `resources/farm_tile_mapping.tres`. Paths (6-7) and fences (8-12) not placed yet.
+- farm_tiles.png -> `resources/farm_tileset.tres` (atlas source 0, tiles 0-18 and 24-55; empty 19-23
+  skipped; `TILE_COUNT = 56` in `tools/godot/build_art_resources.gd`).
+- Ground (`GroundLayer`): grass 0/1 bulk, 13/14/15 ~8% each, 2 and 16 ~2% (seeded).
+- Plots (`resources/farm_tile_mapping.tres`): 3 dirt with 17/18 on ~30% of empty cells (stable per
+  cell), 4 tilled, 5 watered.
+- Fences and paths: `FarmDecor` (`scripts/farm/farm_decor.gd`, node `Farm/Decor`) places the
+  autotiles by script, `base + mask` with N=1 E=2 S=4 W=8 (`FarmTileMapping.mask_for`). Layout
+  (fence rectangles + gates, path rectangles) is data in `scenes/farm/farm.tscn`.
 - player_base.png -> `resources/player_frames.tres`: `idle_<dir>` (cols 0-3, 4 fps) and
   `walk_<dir>` (cols 4-7, 8 fps), AnimatedSprite2D offset (0, -16), origin = feet.
-- crop_basic.png -> `resources/crops/placeholder_crop.tres` (`stage_frames` [0,1,2,3], one
-  frame per GDD growth stage; frame 3 = harvest-ready), drawn bottom-centered on the plot cell.
-- Trees have no art yet: `FarmGrid` draws placeholder rectangles for the seed, seedling,
-  sapling, grown (canopy extends one cell above) and stump states.
+- cinderkin.png -> `resources/monsters/cinderkin_frames.tres` (same names, idle 6 fps, walk 8 fps,
+  32x32), set as `SpeciesData.sprite_frames`; the portrait is `SpeciesData.portrait`.
+- crop_basic.png -> `resources/crops/placeholder_crop.tres` (`stage_frames` [0,1,2,3]).
+- tree_stages.png -> `TreeData.sprite_sheet` (32x48 frames, bottom-center on the cell).
+- bed.png -> Sprite2D in `scenes/world/bed.tscn`, collision 16x32.
+- Tool icons -> `ToolData.icon`; item_wet_waxweed.png -> `ItemData.icon` (other items still use a
+  colored square).
+- HUD: `hud_panel` (info panel), `bar_frame` + fills (health/stamina), `toolbar_frame` +
+  `toolbar_slot(_selected)` (hotbar). `hud_icons.png` is not used yet.
 - Regenerate the .tres files with `tools/godot/build_art_resources.gd` if a layout changes.
-- M1b art for bed, HUD, toolbar, tool icons and trees exists (below) but is not wired in yet.
 
 ## assets/sprites/bed.png (16x32, single frame)
 - Cozy single bed seen top-down: wooden headboard (rows 0-4), pillow (rows 6-12), turned-down

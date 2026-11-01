@@ -27,8 +27,10 @@ enum Kind { MATERIAL, SEED, CROP, FOOD }
 ## Stamina refilled when the player eats one (DECISIONS.md: refill depends
 ## on the food). Placeholder values; -1 = EnergyConfig.eat_stamina_refill.
 @export var stamina_refill: float = -1.0
-## Placeholder icon color (no item art yet).
+## Placeholder icon color (items without art).
 @export var color: Color = Color(0.8, 0.8, 0.8)
+## 16x16 icon (ART: assets/sprites/item_<name>.png). null = colored square.
+@export var icon: Texture2D
 
 
 func is_seed() -> bool:

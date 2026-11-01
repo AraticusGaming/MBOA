@@ -1,4 +1,4 @@
-[gd_scene load_steps=22 format=3]
+[gd_scene load_steps=23 format=3]
 
 [ext_resource type="Script" path="res://scripts/farm/farm_grid.gd" id="1_grid"]
 [ext_resource type="Resource" path="res://resources/crops/placeholder_crop.tres" id="2_crop"]
@@ -22,6 +22,7 @@
 [ext_resource type="Resource" path="res://resources/crops/pumpkin.tres" id="18_pumpkin"]
 [ext_resource type="Resource" path="res://resources/crops/wet_waxweed.tres" id="21_waxweed"]
 [ext_resource type="PackedScene" path="res://scenes/world/assessment_door.tscn" id="22_door"]
+[ext_resource type="Script" path="res://scripts/farm/farm_decor.gd" id="23_decor"]
 
 [ext_resource type="PackedScene" path="res://scenes/world/shop_counter.tscn" id="19_counter"]
 
@@ -30,6 +31,14 @@
 [node name="Ground" type="TileMapLayer" parent="."]
 tile_set = ExtResource("6_tiles")
 script = ExtResource("8_ground")
+
+[node name="Decor" type="TileMapLayer" parent="."]
+tile_set = ExtResource("6_tiles")
+script = ExtResource("23_decor")
+tile_mapping = ExtResource("7_map")
+fence_rects = Array[Rect2i]([Rect2i(13, 8, 14, 10)])
+fence_gaps = Array[Vector2i]([Vector2i(13, 12)])
+path_rects = Array[Rect2i]([Rect2i(6, 8, 1, 8), Rect2i(7, 12, 7, 1), Rect2i(19, 7, 15, 1), Rect2i(19, 8, 2, 1)])
 
 [node name="FarmGrid" type="Node2D" parent="."]
 position = Vector2(224, 144)

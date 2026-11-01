@@ -204,10 +204,19 @@ func _draw() -> void:
 		if m.variant == &"blue_flame":
 			col = Color(0.35, 0.55, 1.0)
 		var p: Vector2 = c.pos
-		draw_rect(Rect2(p + Vector2(-6, -10), Vector2(12, 10)), col)
-		draw_rect(Rect2(p + Vector2(-6, -10), Vector2(12, 10)), col.darkened(0.5), false, 1.0)
+		var label_y := -13.0
+		var tex := species_frame(s, c.vel, _time)
+		if tex:
+			# 32x32 sheet frame, feet (bottom-center) on the creature's position.
+			# Placeholder: the blue-flame variant is a blue tint until it has art.
+			var tint := Color(0.6, 0.75, 1.0) if m.variant == &"blue_flame" else Color.WHITE
+			draw_texture(tex, (p + Vector2(-tex.get_width() * 0.5, -tex.get_height())).round(), tint)
+			label_y = -tex.get_height() + 4.0
+		else:
+			draw_rect(Rect2(p + Vector2(-6, -10), Vector2(12, 10)), col)
+			draw_rect(Rect2(p + Vector2(-6, -10), Vector2(12, 10)), col.darkened(0.5), false, 1.0)
 		var rank := m.get_rank()
-		draw_string(font, p + Vector2(-4, -13), rank, HORIZONTAL_ALIGNMENT_LEFT, -1, 10, _rank_color(rank))
+		draw_string(font, p + Vector2(-4, label_y), rank, HORIZONTAL_ALIGNMENT_LEFT, -1, 10, _rank_color(rank))
 	draw_rect(Rect2(exit_position + Vector2(-10, -14), Vector2(20, 18)), Color(0.55, 0.55, 0.65))
 	draw_string(font, exit_position + Vector2(-12, -17), "Exit", HORIZONTAL_ALIGNMENT_LEFT, -1, 8, Color.WHITE)
 
@@ -227,6 +236,24 @@ func _draw_trap(t: Dictionary) -> void:
 			draw_rect(Rect2(p + Vector2(-6, -6), Vector2(12, 9)), Color(1, 0.9, 0.3), false, 1.0)
 		AssessmentSession.TrapState.FAILED:
 			draw_rect(Rect2(p + Vector2(-3, -5), Vector2(6, 10)), color_trap.darkened(0.4))
+
+
+## Current frame of a species' sprite (idle or walk by velocity), or null.
+static func species_frame(s: SpeciesData, vel: Vector2, t: float) -> Texture2D:
+	if s == null or s.sprite_frames == null:
+		return null
+	var dir := "down"
+	if vel.length() > 0.1:
+		if absf(vel.x) > absf(vel.y):
+			dir = "right" if vel.x > 0 else "left"
+		else:
+			dir = "down" if vel.y > 0 else "up"
+	var anim := StringName(("walk_%s" if vel.length() > 0.1 else "idle_%s") % dir)
+	if not s.sprite_frames.has_animation(anim):
+		return null
+	var n := s.sprite_frames.get_frame_count(anim)
+	var f := int(t * s.sprite_frames.get_animation_speed(anim)) % maxi(n, 1)
+	return s.sprite_frames.get_frame_texture(anim, f)
 
 
 static func _rank_color(rank: String) -> Color:
