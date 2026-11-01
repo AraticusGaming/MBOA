@@ -22,6 +22,17 @@ func _test_initial_state() -> void:
 	check_eq(c.time_minutes, c.config.wake_hour * 60.0, "starts at wake hour")
 	check_eq(c.season, GameClock.Season.SPRING, "starts in spring")
 	check(not c.is_tired, "not tired at start")
+	var cfg := load("res://resources/clock_config.tres") as ClockConfig
+	check_eq(cfg.wake_hour, 6.0, "ruling: wake at 6:00 AM")
+	check_eq(cfg.days_per_season, 30, "ruling: 30 days per season")
+	check_eq(cfg.real_seconds_per_game_hour, 60.0, "ruling: 60 real seconds per game hour")
+	check_eq(c.get_minutes_per_real_second(), 1.0, "1 game minute per real second at x1")
+	for i in 29:
+		c.sleep()
+	check_eq(c.day, 30, "day 30")
+	check_eq(c.season, GameClock.Season.SPRING, "day 30 is still spring")
+	c.sleep()
+	check_eq(c.season, GameClock.Season.SUMMER, "day 31 is summer")
 	c.free()
 
 

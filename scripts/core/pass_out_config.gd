@@ -1,17 +1,17 @@
 class_name PassOutConfig
 extends Resource
-## Penalties for passing out at pass_out_hour (2 AM) instead of going to bed.
+## Pass-out penalty (GDD "Core loop and daily time"): passing out at 2:00 AM
+## costs a percentage of the money the player is carrying, plus a fixed drop
+## in bonding for the monsters they have with them. The player wakes in bed.
 ##
-## OPEN DESIGN QUESTION: the pass-out penalty is not decided yet. Every field
-## defaults to 0 (= no penalty) so behavior is neutral until the design owner
-## picks values in res://resources/pass_out_config.tres.
+## docs/DECISIONS.md (2026-11-01): the player loses 10% of what they carry
+## (money; whether carried items count is still to be confirmed - only Coins
+## are handled, there is no inventory yet). No cap. The bonding drop is still
+## undecided: it stays 0 and inactive until monsters exist.
 
-## Hours added to wake_hour the morning after passing out (applied by Clock).
-@export_range(0.0, 12.0, 0.25) var wake_hour_delay: float = 0.0
-## Fraction of max energy NOT restored after passing out (0..1, PlayerState).
-## Energy itself is a placeholder until the energy system is designed.
-@export_range(0.0, 1.0, 0.01) var energy_penalty_fraction: float = 0.0
-## Fraction of current gold lost after passing out (0..1, PlayerState).
-@export_range(0.0, 1.0, 0.01) var gold_penalty_fraction: float = 0.0
-## Upper bound on gold lost (0 = no cap).
-@export_range(0, 1000000) var gold_penalty_max: int = 0
+## Fraction (0..1) of carried Coins lost when passing out (ruling: 0.1).
+@export_range(0.0, 1.0, 0.01) var gold_penalty_fraction: float = 0.1
+## Fixed Bond drop, in Bond percentage points (Bond bar is 0-100%), applied to
+## every monster in the player's party when passing out. PLACEHOLDER 0 (open).
+## Inactive until monsters exist (Milestone 2+).
+@export_range(0.0, 100.0, 0.5) var party_bond_drop: float = 0.0

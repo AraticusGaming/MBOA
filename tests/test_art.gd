@@ -57,18 +57,18 @@ func _test_crop_frames() -> void:
 	var crop := load(CROP) as CropData
 	check(crop.sprite_sheet != null and crop.sprite_sheet.get_size() == Vector2(64, 16),
 		"crop sheet crop_basic.png 64x16")
-	check_eq(crop.days_to_mature, 3, "placeholder crop matures in 3 watered days")
+	check_eq(crop.get_days_to_mature(), 3, "placeholder crop: 3 watered days (1 per stage)")
 	var frames: Array = []
-	for d in crop.days_to_mature + 2:
+	for d in crop.get_days_to_mature() + 2:
 		frames.append(crop.get_frame_for_growth(d))
 	check_eq(frames, [0, 1, 2, 3, 3], "growth days -> seed, sprout, leafy, ready, ready")
 	check_eq(crop.get_frame_region(3), Rect2(48, 0, 16, 16), "frame 3 region")
 	var long_crop := crop.duplicate() as CropData
-	long_crop.days_to_mature = 6
-	var lf: Array = []
+	long_crop.stage_days = PackedInt32Array([2, 1, 3])
+	var stages: Array = []
 	for d in 7:
-		lf.append(long_crop.get_frame_for_growth(d))
-	check_eq(lf, [0, 0, 1, 1, 2, 2, 3], "mapping spreads evenly for a 6-day crop")
+		stages.append(long_crop.get_stage(d))
+	check_eq(stages, [0, 0, 1, 2, 2, 2, 3], "per-stage day data drives the 4 stages")
 
 
 func _test_farm_tiles() -> void:

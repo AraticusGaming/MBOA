@@ -1,7 +1,9 @@
 class_name Hud
 extends CanvasLayer
-## Placeholder HUD: day / season / time / phase / tired / current tool, tool
-## buttons for mouse & touch, and the sleep fade-to-black transition.
+## Placeholder HUD: day / season / time / phase / health + stamina bars
+## (GDD Energy) / tired / exhausted / current tool, hotbar
+## buttons for mouse & touch (built from Player.tools), and the sleep
+## fade-to-black transition.
 
 ## Seconds to fade back in after the new day starts.
 @export var fade_in_seconds: float = 0.8
@@ -13,12 +15,17 @@ extends CanvasLayer
 @onready var _phase_label: Label = %PhaseLabel
 @onready var _tired_label: Label = %TiredLabel
 @onready var _tool_label: Label = %ToolLabel
+@onready var _health_bar: ProgressBar = %HealthBar
+@onready var _stamina_bar: ProgressBar = %StaminaBar
+@onready var _exhausted_label: Label = %ExhaustedLabel
 @onready var _fade: ColorRect = %Fade
 @onready var _fade_label: Label = %FadeLabel
 @onready var _tool_buttons: HBoxContainer = %ToolButtons
 
 var clock: GameClock
 var player: Player
+## PlayerState autoload (health/stamina); injectable for tests.
+var player_state: Node
 var _fade_tween: Tween
 
 
@@ -28,12 +35,10 @@ func _ready() -> void:
 	if clock:
 		clock.sleep_started.connect(_on_sleep_started)
 		clock.day_started.connect(_on_day_started)
+	if player_state == null:
+		player_state = get_node_or_null("/root/PlayerState")
 	_fade.modulate.a = 0.0
 	_fade.visible = false
-	for i in _tool_buttons.get_child_count():
-		var b := _tool_buttons.get_child(i) as Button
-		b.focus_mode = Control.FOCUS_NONE
-		b.pressed.connect(_on_tool_button.bind(i))
 	_bind_player.call_deferred()
 	_refresh()
 
@@ -44,7 +49,26 @@ func _process(_delta: float) -> void:
 
 func _bind_player() -> void:
 	player = get_tree().get_first_node_in_group(&"player") as Player
+	_build_tool_buttons()
 	_refresh()
+
+
+## One toggle button per hotbar slot, labelled "<key> <name>".
+func _build_tool_buttons() -> void:
+	for c in _tool_buttons.get_children():
+		_tool_buttons.remove_child(c)
+		c.queue_free()
+	if player == null:
+		return
+	for i in player.tools.size():
+		var t := player.tools[i]
+		var b := Button.new()
+		b.text = "%d %s" % [i + 1, t.display_name if t else "?"]
+		b.toggle_mode = true
+		b.focus_mode = Control.FOCUS_NONE
+		b.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		b.pressed.connect(_on_tool_button.bind(i))
+		_tool_buttons.add_child(b)
 
 
 func _refresh() -> void:
@@ -54,10 +78,18 @@ func _refresh() -> void:
 		_time_label.text = clock.get_time_string()
 		_phase_label.text = clock.get_phase_name().capitalize()
 		_tired_label.visible = clock.is_tired
+	if player_state:
+		var cfg: EnergyConfig = player_state.energy_config
+		_health_bar.max_value = cfg.max_health
+		_health_bar.value = player_state.health
+		_stamina_bar.max_value = cfg.max_stamina
+		_stamina_bar.value = player_state.stamina
+		_exhausted_label.visible = player_state.is_exhausted()
 	if player:
-		_tool_label.text = "Tool: " + FarmTools.get_tool_name(player.current_tool)
+		var tool := player.current_tool
+		_tool_label.text = "Tool: " + (tool.display_name if tool else "-")
 		for i in _tool_buttons.get_child_count():
-			(_tool_buttons.get_child(i) as Button).button_pressed = i == player.current_tool
+			(_tool_buttons.get_child(i) as Button).button_pressed = i == player.current_slot
 
 
 func _on_tool_button(index: int) -> void:

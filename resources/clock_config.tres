@@ -4,7 +4,7 @@
 
 [resource]
 script = ExtResource("1_clock")
-real_seconds_per_game_hour = 45.0
+real_seconds_per_game_hour = 60.0
 time_scale = 1.0
 wake_hour = 6.0
 midnight_hour = 24.0
@@ -14,7 +14,7 @@ day_start_hour = 7.0
 dusk_start_hour = 18.0
 night_start_hour = 20.0
 night_darkness = 0.7
-days_per_season = 28
+days_per_season = 30
 use_24h = false
 display_minute_step = 10
 sleep_transition_seconds = 0.6

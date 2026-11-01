@@ -60,8 +60,10 @@ Transparent background; draw on a layer above tilled/watered soil (tiles 4/5).
   `resources/farm_tile_mapping.tres`. Paths (6-7) and fences (8-12) not placed yet.
 - player_base.png -> `resources/player_frames.tres`: `idle_<dir>` (cols 0-3, 4 fps) and
   `walk_<dir>` (cols 4-7, 8 fps), AnimatedSprite2D offset (0, -16), origin = feet.
-- crop_basic.png -> `resources/crops/placeholder_crop.tres` (`growth_frames` [0,1,2],
-  `mature_frame` 3), drawn bottom-centered on the plot cell.
+- crop_basic.png -> `resources/crops/placeholder_crop.tres` (`stage_frames` [0,1,2,3], one
+  frame per GDD growth stage; frame 3 = harvest-ready), drawn bottom-centered on the plot cell.
+- Trees have no art yet: `FarmGrid` draws placeholder rectangles for the seed, seedling,
+  sapling, grown (canopy extends one cell above) and stump states.
 - Regenerate the .tres files with `tools/godot/build_art_resources.gd` if a layout changes.
 - Still placeholder shapes: bed, HUD.
 

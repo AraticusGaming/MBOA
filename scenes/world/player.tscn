@@ -1,7 +1,13 @@
-[gd_scene load_steps=4 format=3]
+[gd_scene load_steps=10 format=3]
 
 [ext_resource type="Script" path="res://scripts/farm/player.gd" id="1_player"]
 [ext_resource type="SpriteFrames" path="res://resources/player_frames.tres" id="2_frames"]
+[ext_resource type="Resource" path="res://resources/tools/pulaski.tres" id="3_pulaski"]
+[ext_resource type="Resource" path="res://resources/tools/sickle.tres" id="4_sickle"]
+[ext_resource type="Resource" path="res://resources/tools/pickaxe.tres" id="5_pickaxe"]
+[ext_resource type="Resource" path="res://resources/tools/watering_can.tres" id="6_watering_can"]
+[ext_resource type="Resource" path="res://resources/tools/seeds.tres" id="7_seeds"]
+[ext_resource type="Script" path="res://scripts/farm/tool_data.gd" id="8_tooldata"]
 
 [sub_resource type="RectangleShape2D" id="RectangleShape2D_feet"]
 size = Vector2(10, 6)
@@ -9,6 +15,7 @@ size = Vector2(10, 6)
 [node name="Player" type="CharacterBody2D"]
 motion_mode = 1
 script = ExtResource("1_player")
+tools = Array[ExtResource("8_tooldata")]([ExtResource("3_pulaski"), ExtResource("4_sickle"), ExtResource("5_pickaxe"), ExtResource("6_watering_can"), ExtResource("7_seeds")])
 
 [node name="Sprite" type="AnimatedSprite2D" parent="."]
 sprite_frames = ExtResource("2_frames")

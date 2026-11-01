@@ -1,0 +1,8 @@
+[gd_resource type="Resource" script_class="StatLetterBands" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/creatures/stat_letter_bands.gd" id="1_bands"]
+
+[resource]
+script = ExtResource("1_bands")
+stat_min = 1
+band_max = PackedInt32Array(4, 9, 14, 17, 20)

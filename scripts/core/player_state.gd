@@ -1,22 +1,29 @@
 extends Node
-## Autoload "PlayerState": persistent player stats that outlive scenes, and the
-## sleep handler that applies PassOutConfig penalties when a day ends.
+## Autoload "PlayerState": player data that outlives scenes (coins, health,
+## stamina, party), and the sleep handler: sleeping refills stamina (GDD) and
+## passing out applies the GDD pass-out penalty.
 ##
-## Energy and gold are PLACEHOLDERS (no energy/economy design yet) so the
-## pass-out penalty has something to act on; Milestone 2+ will flesh them out.
+## Health outside battle is an OPEN QUESTION in the GDD: it is tracked and
+## shown, with damage()/heal() hooks, but nothing reduces it yet.
 
 signal sleep_resolved(pass_out: bool, penalties: Dictionary)
-signal energy_changed(energy: float, max_energy: float)
-signal gold_changed(gold: int)
+signal coins_changed(coins: int)
+signal health_changed(health: float, max_health: float)
+signal stamina_changed(stamina: float, max_stamina: float)
 
 const PASS_OUT_CONFIG_PATH := "res://resources/pass_out_config.tres"
+const ENERGY_CONFIG_PATH := "res://resources/energy_config.tres"
 
-## PLACEHOLDER: energy system not designed yet.
-@export var max_energy: float = 100.0
-
-var config: PassOutConfig
-var energy: float = 100.0
-var gold: int = 0
+var pass_out_config: PassOutConfig
+var energy_config: EnergyConfig
+var health: float = 100.0
+var stamina: float = 100.0
+## Coins the player is carrying (GDD currency). Economy is Milestone 2.
+var coins: int = 0
+## Monsters with the player (GDD: up to two from the barn). Empty until
+## monsters exist; any member with add_bond(delta: float) receives the
+## pass-out bonding drop.
+var party: Array = []
 ## True if the most recent day ended by passing out (2 AM) instead of sleeping.
 var last_sleep_was_pass_out: bool = false
 var pass_out_count: int = 0
@@ -24,8 +31,10 @@ var clock: GameClock
 
 
 func _init() -> void:
-	config = GameClock._load_or_default(PASS_OUT_CONFIG_PATH, PassOutConfig) as PassOutConfig
-	energy = max_energy
+	pass_out_config = GameClock._load_or_default(PASS_OUT_CONFIG_PATH, PassOutConfig) as PassOutConfig
+	energy_config = GameClock._load_or_default(ENERGY_CONFIG_PATH, EnergyConfig) as EnergyConfig
+	health = energy_config.max_health
+	stamina = energy_config.max_stamina
 
 
 func _ready() -> void:
@@ -41,42 +50,118 @@ func bind_clock(c: GameClock) -> void:
 		clock.day_ended.connect(_on_day_ended)
 
 
-## Resolves a night's sleep. Normal sleep fully restores energy; passing out
-## applies the configured (placeholder) penalties. Returns what was applied.
+func add_coins(amount: int) -> void:
+	coins = maxi(coins + amount, 0)
+	coins_changed.emit(coins)
+
+
+# --- Stamina / health -------------------------------------------------------
+
+## GDD: at 0 stamina the player can't use tools.
+func can_use_tools() -> bool:
+	return stamina > 0.0
+
+
+## GDD: at 0 stamina the player is slowed.
+func is_exhausted() -> bool:
+	return stamina <= 0.0
+
+
+## Speed multiplier from stamina (1.0, or the placeholder slow at 0).
+func get_speed_multiplier() -> float:
+	return energy_config.exhausted_speed_multiplier if is_exhausted() else 1.0
+
+
+## Pays for one tool use. Fails (and changes nothing) at 0 stamina; a use that
+## costs more than what is left still happens and empties the bar.
+func spend_stamina(amount: float) -> bool:
+	if not can_use_tools():
+		return false
+	_set_stamina(stamina - maxf(amount, 0.0))
+	return true
+
+
+## Adds stamina (amount < 0 = refill to full).
+func refill_stamina(amount: float = -1.0) -> void:
+	_set_stamina(energy_config.max_stamina if amount < 0.0 else stamina + amount)
+
+
+## GDD: eating food refills stamina. Food items/values are not designed yet,
+## so callers pass the amounts (stub for the inventory milestone).
+func eat(stamina_amount: float, health_amount: float = 0.0) -> void:
+	refill_stamina(maxf(stamina_amount, 0.0))
+	if health_amount > 0.0:
+		heal(health_amount)
+
+
+## GDD: resting in a hot spring refills stamina. Stub: no hot spring exists
+## yet; restores hot_spring_stamina_per_game_hour (placeholder) per hour.
+func rest_in_hot_spring(game_minutes: float) -> void:
+	refill_stamina(energy_config.hot_spring_stamina_per_game_hour * maxf(game_minutes, 0.0) / 60.0)
+
+
+## Health hooks (what health does outside battle is a GDD open question).
+func damage(amount: float) -> void:
+	_set_health(health - maxf(amount, 0.0))
+
+
+func heal(amount: float) -> void:
+	_set_health(health + maxf(amount, 0.0))
+
+
+func _set_stamina(value: float) -> void:
+	var v := clampf(value, 0.0, energy_config.max_stamina)
+	if v != stamina:
+		stamina = v
+		stamina_changed.emit(stamina, energy_config.max_stamina)
+
+
+func _set_health(value: float) -> void:
+	var v := clampf(value, 0.0, energy_config.max_health)
+	if v != health:
+		health = v
+		health_changed.emit(health, energy_config.max_health)
+
+
+# --- Sleep --------------------------------------------------------------------
+
+## Resolves a night's sleep. Stamina refills (GDD: sleeping refills it; the
+## GDD pass-out penalty does not mention stamina, so passing out refills too). Passing out applies the PassOutConfig penalty
+## (carried-Coins percentage + fixed party bond drop). Returns what was applied.
 func apply_sleep(pass_out: bool) -> Dictionary:
 	last_sleep_was_pass_out = pass_out
-	var penalties := {"energy_lost": 0.0, "gold_lost": 0, "wake_hour_delay": 0.0}
-	var restored := max_energy
+	var penalties := {"coins_lost": 0, "party_bond_drop": 0.0}
 	if pass_out:
 		pass_out_count += 1
-		penalties.energy_lost = max_energy * clampf(config.energy_penalty_fraction, 0.0, 1.0)
-		restored -= penalties.energy_lost
-		var lost := int(floor(gold * clampf(config.gold_penalty_fraction, 0.0, 1.0)))
-		if config.gold_penalty_max > 0:
-			lost = mini(lost, config.gold_penalty_max)
-		penalties.gold_lost = lost
-		penalties.wake_hour_delay = config.wake_hour_delay  # applied by Clock
+		var lost := int(floor(coins * clampf(pass_out_config.gold_penalty_fraction, 0.0, 1.0)))
+		penalties.coins_lost = lost
 		if lost != 0:
-			gold -= lost
-			gold_changed.emit(gold)
-	energy = restored
-	energy_changed.emit(energy, max_energy)
+			add_coins(-lost)
+		var drop := maxf(pass_out_config.party_bond_drop, 0.0)
+		if drop > 0.0:
+			for member in party:
+				if member != null and member.has_method(&"add_bond"):
+					member.add_bond(-drop)
+			penalties.party_bond_drop = drop
+	refill_stamina()
 	sleep_resolved.emit(pass_out, penalties)
 	return penalties
 
 
 func to_dict() -> Dictionary:
 	return {
-		"energy": energy,
-		"gold": gold,
+		"coins": coins,
+		"health": health,
+		"stamina": stamina,
 		"last_sleep_was_pass_out": last_sleep_was_pass_out,
 		"pass_out_count": pass_out_count,
 	}
 
 
 func from_dict(data: Dictionary) -> void:
-	energy = float(data.get("energy", max_energy))
-	gold = int(data.get("gold", 0))
+	coins = int(data.get("coins", 0))
+	_set_health(float(data.get("health", energy_config.max_health)))
+	_set_stamina(float(data.get("stamina", energy_config.max_stamina)))
 	last_sleep_was_pass_out = bool(data.get("last_sleep_was_pass_out", false))
 	pass_out_count = int(data.get("pass_out_count", 0))
 

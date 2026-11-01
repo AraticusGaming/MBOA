@@ -1,0 +1,11 @@
+[gd_resource type="Resource" script_class="ToolData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/farm/tool_data.gd" id="1_tool"]
+
+[resource]
+script = ExtResource("1_tool")
+id = &"pulaski"
+display_name = "Pulaski"
+kind = 0
+is_tool = true
+stamina_cost = 2.0
