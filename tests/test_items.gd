@@ -50,8 +50,11 @@ func _test_catalog() -> void:
 			check(crop != null, "%s -> crop .tres exists" % it.id)
 			if crop:
 				check(cat.has_item(crop.get_harvest_item_id()), "%s harvest item exists" % crop.id)
-		if it.kind == ItemData.Kind.CROP:
+		if it.kind == ItemData.Kind.CROP and it.id != &"wet_waxweed":
 			check(it.edible and it.can_sell(), "%s is edible and sellable" % it.id)
+	var wax := cat.get_item(&"wet_waxweed")
+	check(wax != null and not wax.edible and wax.can_sell(), "Wet Waxweed: monster food, sellable, not eaten by the player")
+	check_eq(cat.get_seed_for_crop(&"wet_waxweed").id, &"waxweed_starter", "Waxweed Starter plants Wet Waxweed")
 
 
 func _test_inventory() -> void:
@@ -94,7 +97,7 @@ func _test_starting_kit() -> void:
 
 func _test_shop_logic() -> void:
 	var shop := load(SHOP_PATH) as ShopData
-	check(shop != null and shop.stock.size() == 4, "seed shop with 4 seeds")
+	check(shop != null and shop.stock.size() == 5, "seed shop with 5 seeds")
 	var spring := Shop.get_stock(shop, GameClock.Season.SPRING)
 	var ids := spring.map(func(i): return i.id)
 	check(ids.has(&"turnip_seeds") and ids.has(&"carrot_seeds"), "spring stock: turnip, carrot")
@@ -103,7 +106,7 @@ func _test_shop_logic() -> void:
 	check(fall.has(&"pumpkin_seeds") and fall.has(&"carrot_seeds") and not fall.has(&"turnip_seeds"),
 		"fall stock: pumpkin, carrot")
 	check_eq(Shop.get_stock(shop, GameClock.Season.WINTER).size(), 0, "winter: no seeds")
-	check_eq(Shop.get_stock(shop).size(), 4, "season -1: everything")
+	check_eq(Shop.get_stock(shop).size(), 5, "season -1: everything")
 
 	var ps := _make_state()
 	ps.inventory.clear()

@@ -1,4 +1,4 @@
-[gd_scene load_steps=20 format=3]
+[gd_scene load_steps=21 format=3]
 
 [ext_resource type="Script" path="res://scripts/farm/farm_grid.gd" id="1_grid"]
 [ext_resource type="Resource" path="res://resources/crops/placeholder_crop.tres" id="2_crop"]
@@ -20,6 +20,7 @@
 [ext_resource type="Resource" path="res://resources/crops/carrot.tres" id="16_carrot"]
 [ext_resource type="Resource" path="res://resources/crops/tomato.tres" id="17_tomato"]
 [ext_resource type="Resource" path="res://resources/crops/pumpkin.tres" id="18_pumpkin"]
+[ext_resource type="Resource" path="res://resources/crops/wet_waxweed.tres" id="21_waxweed"]
 
 [ext_resource type="PackedScene" path="res://scenes/world/shop_counter.tscn" id="19_counter"]
 
@@ -32,7 +33,7 @@ script = ExtResource("8_ground")
 [node name="FarmGrid" type="Node2D" parent="."]
 position = Vector2(224, 144)
 script = ExtResource("1_grid")
-crops = Array[ExtResource("4_cropdata")]([ExtResource("2_crop"), ExtResource("15_turnip"), ExtResource("16_carrot"), ExtResource("17_tomato"), ExtResource("18_pumpkin")])
+crops = Array[ExtResource("4_cropdata")]([ExtResource("2_crop"), ExtResource("15_turnip"), ExtResource("16_carrot"), ExtResource("17_tomato"), ExtResource("18_pumpkin"), ExtResource("21_waxweed")])
 tileset = ExtResource("6_tiles")
 tile_mapping = ExtResource("7_map")
 trees = Array[ExtResource("10_treedata")]([ExtResource("9_tree")])

@@ -148,6 +148,26 @@ func get_farm_tree(cell: Vector2i) -> FarmTree:
 	return plot.tree if plot else null
 
 
+## True if a tree of at least `min_stage` (TreeData.Stage) stands within
+## `radius` cells (Chebyshev) of `cell`, not counting `cell` itself.
+func is_near_tree(cell: Vector2i, radius: int = 1, min_stage: int = TreeData.Stage.SAPLING) -> bool:
+	for dy in range(-radius, radius + 1):
+		for dx in range(-radius, radius + 1):
+			if dx == 0 and dy == 0:
+				continue
+			var t := get_farm_tree(cell + Vector2i(dx, dy))
+			if t != null and t.stage >= min_stage:
+				return true
+	return false
+
+
+## Placement rules from CropData (e.g. Wet Waxweed must be near a tree).
+func meets_placement(cell: Vector2i, crop: CropData) -> bool:
+	if crop == null or not crop.requires_adjacent_tree:
+		return true
+	return is_near_tree(cell, crop.tree_search_radius, crop.min_tree_stage)
+
+
 ## CropData planted on `cell`, or null.
 func get_crop_at(cell: Vector2i) -> CropData:
 	var plot := get_plot(cell)
@@ -231,7 +251,7 @@ func plant(cell: Vector2i, crop_id: StringName) -> bool:
 	var plot := get_plot(cell)
 	var crop := get_crop(crop_id)
 	var ok := plot != null and plot.state == FarmPlot.State.TILLED and crop != null \
-		and can_plant_now(crop)
+		and can_plant_now(crop) and meets_placement(cell, crop)
 	if ok:
 		plot.state = FarmPlot.State.PLANTED
 		plot.crop_id = crop_id

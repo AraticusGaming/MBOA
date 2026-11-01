@@ -39,6 +39,9 @@ Rulings from Ledan (Stardew-style), awaiting the user's confirmation, are marked
 | Crop list **(Ledan)** | Turnip (spring), Carrot (spring+fall), Tomato (summer), Pumpkin (fall), Placeholder Crop (all seasons, test/dev crop); no winter crop (Stardew) | `resources/crops/*.tres` |
 | Days per growth stage **(Ledan)** | Turnip 1/1/2, Carrot 1/2/1, Tomato 2/2/2, Pumpkin 2/3/3, Placeholder 1/1/1 | `stage_days` |
 | Crop sprites | all share `crop_basic.png`, tinted per crop | `sprite_tint` |
+| Wet Waxweed (Cinderkin food; farmable near trees: user ruling) | spring/summer/fall, 2/2/2 days | `resources/crops/wet_waxweed.tres` |
+| "Near trees" for Wet Waxweed | a sapling, grown tree or stump within 1 cell (8 neighbours); checked at planting only, felling the tree later doesn't kill it | `CropData.requires_adjacent_tree`, `tree_search_radius`, `min_tree_stage`; `FarmGrid.meets_placement()` |
+| Wet Waxweed "must be transported wet" (lore) | not modelled; the item is always wet | - |
 | Out-of-season crops die at the season change (rule confirmed) | on; the plot goes back to tilled soil (no dead-crop object) | `FarmGrid.kill_out_of_season_crops` |
 
 ## Coins, items and inventory
@@ -70,6 +73,8 @@ and the inventory rules below are placeholders.
 | Tomato | - | 60 |
 | Pumpkin | - | 140 |
 | Placeholder Crop | - | 10 |
+| Waxweed Starter (plants Wet Waxweed) | 40 | 20 |
+| Wet Waxweed | - | 50 (not eaten by the player) |
 | Wood | - | 2 |
 | Stone | - | 2 |
 
@@ -78,7 +83,7 @@ and the inventory rules below are placeholders.
 |------|-------|-------|
 | Seed shop location | a counter with a placeholder shopkeeper on the farm (top right); no town yet | `scenes/world/shop_counter.tscn`, `scenes/farm/farm.tscn` |
 | Shopkeeper identity | unnamed placeholder (the GDD/VILLAGERS don't assign the seed shop yet) | `ShopCounter._draw()` |
-| Stock | the four seeds; only seeds that grow in the current season (Stardew-style) | `resources/shop/seed_shop.tres` `stock`, `seasonal_seeds` |
+| Stock | the four seeds plus Waxweed Starter; only seeds that grow in the current season (Stardew-style) | `resources/shop/seed_shop.tres` `stock`, `seasonal_seeds` |
 | Selling | instant sale at the shop window (no shipping bin / overnight payout yet) | `ShopData.buys_from_player`, `Shop.sell_slot()` |
 | Time pauses while the shop window is open | Stardew rule | `ShopUI` (`Clock.pause(&"shop")`) |
 | Shop hours / closed days | none (always open) | - |

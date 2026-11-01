@@ -22,6 +22,19 @@ const STAGE_COUNT := 4
 @export var harvest_item_id: StringName = &""
 ## Items per harvest. Not GDD, placeholder.
 @export_range(1, 20) var harvest_amount: int = 1
+@export_group("Placement")
+## The crop may only be planted near a tree (DECISIONS / cinderkin.md: Wet
+## Waxweed is farmable but must be placed near trees). Checked when planting
+## only; felling the tree later does not kill the crop (placeholder).
+@export var requires_adjacent_tree: bool = false
+## "Near" = a tree within this many cells (Chebyshev: 1 = the 8 neighbours).
+## PLACEHOLDER.
+@export_range(1, 5) var tree_search_radius: int = 1
+## Lowest TreeData.Stage that counts as a tree (2 = sapling). PLACEHOLDER:
+## sapling, grown tree or stump count; buried seeds and seedlings don't.
+@export_range(0, 4) var min_tree_stage: int = 2
+@export_group("")
+
 ## Placeholder draw color of the mature crop when there is no sprite sheet.
 @export var placeholder_color: Color = Color(0.9, 0.75, 0.2)
 

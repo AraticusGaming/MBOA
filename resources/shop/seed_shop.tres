@@ -6,6 +6,6 @@
 script = ExtResource("1_shop")
 id = &"seed_shop"
 display_name = "Seed Shop (placeholder)"
-stock = Array[StringName]([&"turnip_seeds", &"carrot_seeds", &"tomato_seeds", &"pumpkin_seeds"])
+stock = Array[StringName]([&"turnip_seeds", &"carrot_seeds", &"tomato_seeds", &"pumpkin_seeds", &"waxweed_starter"])
 seasonal_seeds = true
 buys_from_player = true

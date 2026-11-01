@@ -32,6 +32,7 @@ func _run_tests() -> void:
 	_test_trees()
 	_test_obstacles()
 	_test_seasonal_crops()
+	_test_tree_adjacent_crop()
 
 
 func _test_full_cycle(crop: CropData) -> void:
@@ -373,4 +374,52 @@ func _test_seasonal_crops() -> void:
 	check(grid.plant(Vector2i(3, 0), &"tomato"), "tomato plants in summer")
 	grid.free()
 	keep.free()
+	clock.free()
+
+
+## Wet Waxweed (cinderkin.md ruling): farmable, but only near trees.
+func _test_tree_adjacent_crop() -> void:
+	var wax := load("res://resources/crops/wet_waxweed.tres") as CropData
+	check(wax != null and wax.requires_adjacent_tree, "Wet Waxweed requires an adjacent tree")
+	check(not (load("res://resources/crops/turnip.tres") as CropData).requires_adjacent_tree,
+		"ordinary crops don't")
+	var clock := make_clock()
+	var grid := _make_grid(clock)
+	grid.crops = [wax, load(CROP_PATH) as CropData]
+	var tree_id: StringName = grid.trees[0].id
+	var far := Vector2i(1, 1)
+	grid.till(far)
+	check(not grid.plant(far, &"wet_waxweed"), "no tree nearby: planting fails")
+	check_eq(grid.get_plot(far).state, FarmPlot.State.TILLED, "plot stays tilled")
+	check(grid.plant(far, &"placeholder_crop"), "an ordinary crop still plants there")
+	# A grown tree next to a tilled cell (diagonal counts, radius 1).
+	var tree_cell := Vector2i(6, 3)
+	grid.place_tree(tree_cell, tree_id, TreeData.Stage.GROWN)
+	var diag := tree_cell + Vector2i(1, 1)
+	var two_away := tree_cell + Vector2i(2, 0)
+	grid.till(diag)
+	grid.till(two_away)
+	check(grid.is_near_tree(diag), "diagonal neighbour is near the tree")
+	check(not grid.is_near_tree(two_away), "two cells away is not")
+	check(not grid.plant(two_away, &"wet_waxweed"), "2 cells from the tree: fails")
+	check(grid.plant(diag, &"wet_waxweed"), "next to a grown tree: plants")
+	# Buried seeds/seedlings don't count as trees; saplings do.
+	var seed_cell := Vector2i(2, 6)
+	grid.place_tree(seed_cell, tree_id, TreeData.Stage.SEEDLING)
+	var by_seedling := seed_cell + Vector2i(0, -1)
+	grid.till(by_seedling)
+	check(not grid.plant(by_seedling, &"wet_waxweed"), "a seedling isn't a tree yet")
+	var sap_cell := Vector2i(9, 6)
+	grid.place_tree(sap_cell, tree_id, TreeData.Stage.SAPLING)
+	var by_sapling := sap_cell + Vector2i(-1, 0)
+	grid.till(by_sapling)
+	check(grid.plant(by_sapling, &"wet_waxweed"), "a sapling counts")
+	# Grows and harvests like any crop.
+	for i in wax.get_days_to_mature():
+		grid.water(diag)
+		grid.advance_day()
+	check(grid.is_mature(diag), "Wet Waxweed matures")
+	check_eq(grid.harvest(diag), &"wet_waxweed", "harvest Wet Waxweed")
+	check_eq(wax.get_harvest_item_id(), &"wet_waxweed", "harvest item is the wet_waxweed item")
+	grid.free()
 	clock.free()
