@@ -116,7 +116,7 @@ only; the first captured monster sets the farm's starting biome with that biome'
 
 | Item | Value | Where |
 |------|-------|-------|
-| How the room is reached | a placeholder portal on the farm (bottom left); the opening, the Association and character creation are skipped | `scenes/world/assessment_door.tscn`, `farm.tscn` |
+| How the room is reached | a placeholder portal on the farm (bottom left); the opening, the Association and character creation are skipped. **The real Assessment happens at the Association, before the farm exists (GDD opening); the farm portal is a temporary stand-in** | `scenes/world/assessment_door.tscn`, `farm.tscn` |
 | Door after the first monster | closed (`repeatable` off) | `AssessmentDoor.repeatable` |
 | Creatures in the room | 6, any wild-catchable Woodland species, equal weights | `woodland.tres` `creature_count`, `species_weights` |
 | Room size, movement | room rect 592x280 px, wander 24 px/s, re-pick direction every ~1.6 s, 30% idle | `woodland.tres` |
@@ -135,5 +135,38 @@ only; the first captured monster sets the farm's starting biome with that biome'
 | Item | Value | Where |
 |------|-------|-------|
 | Habitat data | one per starter biome, capacity 12 (GDD), no build materials yet | `resources/habitats/*.tres` |
-| Habitat on the farm | state only (`PlayerState.habitats`); no placement or art until Slice 3 | `PlayerState.build_habitat()` |
+| Habitat on the farm | the starting habitat is the `Farm/Habitat` pen (Slice 3); other biome habitats are state only, not placed | `PlayerState.build_habitat()`, `farm.tscn` |
 | Farm biome | `PlayerState.farm_biome`, set once by the first monster | `PlayerState.complete_assessment()` |
+
+## Slice 3: pasture, habitat, barn, bonding
+GDD-exact: pasture 6 spots; a habitat holds 12; barn 20 stalls, upgradable four times to 100; a wild-caught monster
+lives in its biome's habitat if there is a spot, else the pasture; at 25% bond it can move to the barn; at 100% it
+gets the breeding star; up to two barn monsters go out with the player; pasture monsters need no food but feeding
+boosts bonding; barn monsters need food and water every day; party monsters gain passive bonding; each monster has
+a preferred food type and a favorite food, and feeding the favorite continuously raises bonding; Angie's 20
+always-favorite foods and 45 favorite-crop seeds. Everything below is **not GDD, placeholder**.
+
+| Item | Value | Where |
+|------|-------|-------|
+| Barn stalls per upgrade | +20 (20 -> 100 over 4 upgrades, derived from the GDD totals) | `resources/buildings/barn.tres` `upgrade_step` |
+| Barn upgrade costs (GDD open) | free; only callable from code (no upgrade UI) | `barn.tres` `upgrade_costs`, `PlayerState.upgrade_barn()` |
+| Pasture/habitat full | a new wild monster is refused (`add_wild_monster` returns false); the Assessment always has room | `PlayerState.add_wild_monster()` |
+| Moves between homes | any home with room; barn needs 25%; a habitat only takes its biome's species; moving back out of the barn is allowed and leaves the party | `PlayerState.get_move_block()` |
+| Party members | keep their barn stall while out; only barn monsters can join | `PlayerState.add_to_party()` |
+| Bond from feeding | favorite 6, preferred type 3, other 1 (points on the 0-100 bar) | `resources/monsters/care_config.tres` |
+| "Continuously" feeding the favorite | +1 per consecutive favorite day, max +5 | `favorite_streak_bonus`, `favorite_streak_cap` |
+| Bond feeds per day | 2 per monster (more feeding still counts as fed, no bond) | `bond_feeds_per_day` |
+| What can be fed | crops and foods (`ItemData.Kind` CROP/FOOD), not seeds or materials | `ItemData.is_feedable()` |
+| Food types | plant (crops, Wet Waxweed), fish (Snouter Roe), treat (Angie's); species: Cinderkin, Crow, Blue Jay, Robin plant; Rockback fish; Jumping Spider, Praying Mantis insect (no insect food yet) | `ItemData.food_type`, `SpeciesData.preferred_food_type` |
+| Party passive bonding | +2 per day in the party | `party_bond_per_day` |
+| Missed barn food or water | -3 bond at day end per barn monster (party members exempt) | `barn_neglect_bond_drop`, `party_skips_barn_care` |
+| Barn water | one "Water troughs" action waters every barn monster for the day, free | `PlayerState.water_barn()` |
+| Habitat and pasture daily needs | none (GDD only says so for the pasture) | `PenData.needs_daily_care` |
+| Daily tick order | at day end: pass-out penalty first, then the care tick | `PlayerState._on_day_ended()` |
+| Angie's gift (opening skipped) | given with the first Assessment monster: 20 "Angie's Treat" (always favorite) + 45 seeds of its favorite crop this season (Cinderkin: Waxweed Starter) | `angie_gift_enabled`, `resources/items/angie_treat.tres` |
+| Pass-out bond drop | still 0 (GDD open); applied to both party members when set | `pass_out_config.tres` `party_bond_drop` |
+| Bred monsters becoming wild when neglected (GDD) | not implemented (no breeding yet) | - |
+| Pen layout | habitat (Woodland) and pasture fenced on the right, barn building top middle; fences don't block movement | `scenes/farm/farm.tscn` (`Decor`, `Habitat`, `Pasture`, `Barn`) |
+| Pen/barn art | placeholder: barn drawn as shapes, other species as colored boxes; Cinderkin uses the ART sheet | `MonsterPen` |
+| Care window | pauses the clock; feed the picked food, move, water, party | `scenes/ui/care_ui.tscn` |
+| Wander | 14 px/s, 1-3.5 s pauses | `MonsterPen.wander_speed` |

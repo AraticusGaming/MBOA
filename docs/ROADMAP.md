@@ -22,7 +22,7 @@ Order follows the GDD's "Suggested build order" (steps 1-6), with breeding, vill
 - [x] Crop data: four growth stages, season tag, growth days as data in `resources/` (values open). (Cody)
 - [x] Save and load across days and seasons from the start (GDD technical requirement). (Cody)
 - [ ] Display: GDD wants 1920x1080 with a 4K option. The current 640x360 viewport scales by exactly 3x and 6x, so it fits. Keep integer scaling; add UI scale and zoom options later. (Ledan to confirm; no display settings were changed in 1.5)
-- [ ] Art: placed fence and path tiles, bed sprite, Stardew-like HUD frame, more ground variation, more contrast for watered soil. (ART)
+- [x] Art: placed fence and path tiles, bed sprite, Stardew-like HUD frame, more ground variation, more contrast for watered soil. (ART; wired in by Cody in Slice 3)
 
 ## Direction: creature-loop vertical slice (user confirmed 2026-11-01)
 The GDD's suggested order is a suggestion, not a rule. With limited weekly resources, the next work proves the unique hook:
@@ -33,15 +33,15 @@ Test creature: the Cinderkin (`docs/creatures/cinderkin.md`). Slice simplificati
 - [x] Coins, shop (seeds), selling crops (Cody)
 - [x] Monster data resource per the GDD (species, family, gender, rank, stats HP/STR/DEF/INT/SPD with per-stat letters, bond, favorite food, parentage) (Cody)
 - [x] Cinderkin species data (Critter, Woodland, favorite food Wet Waxweed) and the Wet Waxweed crop, which must be planted near trees (Cody)
-- [ ] Cinderkin sprites, portrait, Waxweed icon (ART, branch art/cinderkin)
+- [x] Cinderkin sprites, portrait, Waxweed icon (ART, branch art/cinderkin; wired in by Cody in Slice 3)
 
 ## Slice 2: Assessment and the first monster (Cody items done in M2; the opening and character creation are skipped, a placeholder farm portal starts the Assessment; habitat is a data/state stub until Slice 3)
 - [x] One biome room (Woodland), 5 traps, random creature movement, rank odds D 79 / C 20 / B 1, keep one or use all 5 (Cody)
 - [x] First monster sets the farm's starting biome and its habitat is pre-built (Cody)
 - [ ] A few more Woodland creatures and room art (ART)
 
-## Slice 3: Pasture, barn, bonding
-- [ ] Pasture (6), the starting habitat (12), barn (20 stalls), Bond bar (25% barn, 100% star), feeding, daily food and water, party of 2 (Cody)
+## Slice 3: Pasture, barn, bonding (Cody items done, branch feature/slice3-bond)
+- [x] Pasture (6), the starting habitat (12), barn (20 stalls), Bond bar (25% barn, 100% star), feeding, daily food and water, party of 2 (Cody)
 - [ ] Pasture, habitat, barn art (ART)
 
 ## Slice 4: Nursery and the first baby

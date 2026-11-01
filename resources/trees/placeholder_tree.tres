@@ -1,6 +1,7 @@
-[gd_resource type="Resource" script_class="TreeData" load_steps=2 format=3]
+[gd_resource type="Resource" script_class="TreeData" load_steps=3 format=3]
 
 [ext_resource type="Script" path="res://scripts/farm/tree_data.gd" id="1_tree"]
+[ext_resource type="Texture2D" path="res://assets/sprites/tree_stages.png" id="2_sheet"]
 
 [resource]
 script = ExtResource("1_tree")
@@ -15,3 +16,6 @@ drop_item_id = &"wood"
 sapling_wood = 1
 fell_wood = 8
 stump_wood = 2
+sprite_sheet = ExtResource("2_sheet")
+frame_size = Vector2i(32, 48)
+stage_frames = PackedInt32Array(0, 1, 2, 3, 4)

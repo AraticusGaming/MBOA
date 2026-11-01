@@ -12,4 +12,5 @@ sell_price = 35
 max_stack = 99
 edible = true
 stamina_refill = 15.0
+food_type = &"plant"
 color = Color(0.92, 0.88, 0.95, 1)

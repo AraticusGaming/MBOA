@@ -1,13 +1,16 @@
 class_name GroundLayer
 extends TileMapLayer
-## Fills a rectangle with grass tiles from the farm TileSet (ART_NOTES tiles
-## 0-2). Deterministic (seeded) so the map looks the same every run.
+## Fills a rectangle with grass tiles from the farm TileSet. ART_NOTES: grass
+## 0/1 as the bulk, 13/14/15 (tufts, stones, clover) at about 5-10% each,
+## 2 and 16 (flowers) at 1-3%. Deterministic (seeded) so the map looks the
+## same every run.
 
 @export var size_in_tiles: Vector2i = Vector2i(40, 23)
 @export var source_id: int = 0
 ## Grass atlas coords and their relative weights.
-@export var tiles: Array[Vector2i] = [Vector2i(0, 0), Vector2i(1, 0), Vector2i(2, 0)]
-@export var weights: PackedFloat32Array = [0.6, 0.35, 0.05]
+@export var tiles: Array[Vector2i] = [Vector2i(0, 0), Vector2i(1, 0), Vector2i(2, 0),
+	Vector2i(5, 1), Vector2i(6, 1), Vector2i(7, 1), Vector2i(0, 2)]
+@export var weights: PackedFloat32Array = [0.44, 0.28, 0.02, 0.08, 0.07, 0.09, 0.02]
 @export var random_seed: int = 1337
 
 

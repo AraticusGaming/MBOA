@@ -1,18 +1,58 @@
-[gd_scene load_steps=7 format=3]
+[gd_scene load_steps=16 format=3]
 
 [ext_resource type="Script" path="res://scripts/ui/hud.gd" id="1_hud"]
+[ext_resource type="Texture2D" path="res://assets/ui/hud_panel.png" id="2_panel"]
+[ext_resource type="Texture2D" path="res://assets/ui/bar_frame.png" id="3_barframe"]
+[ext_resource type="Texture2D" path="res://assets/ui/bar_fill_health.png" id="4_hfill"]
+[ext_resource type="Texture2D" path="res://assets/ui/bar_fill_stamina.png" id="5_sfill"]
+[ext_resource type="Texture2D" path="res://assets/ui/toolbar_frame.png" id="6_toolbar"]
 
-[sub_resource type="StyleBoxFlat" id="Style_bar_bg"]
-bg_color = Color(0.1, 0.1, 0.12, 0.9)
+[sub_resource type="StyleBoxTexture" id="Style_panel"]
+texture = ExtResource("2_panel")
+texture_margin_left = 6.0
+texture_margin_top = 6.0
+texture_margin_right = 6.0
+texture_margin_bottom = 6.0
+content_margin_left = 7.0
+content_margin_top = 5.0
+content_margin_right = 7.0
+content_margin_bottom = 5.0
 
-[sub_resource type="StyleBoxFlat" id="Style_health_fill"]
-bg_color = Color(0.85, 0.25, 0.25, 1)
+[sub_resource type="StyleBoxTexture" id="Style_bar_bg"]
+texture = ExtResource("3_barframe")
+texture_margin_left = 3.0
+texture_margin_top = 3.0
+texture_margin_right = 3.0
+texture_margin_bottom = 3.0
 
-[sub_resource type="StyleBoxFlat" id="Style_stamina_fill"]
-bg_color = Color(0.35, 0.8, 0.3, 1)
+[sub_resource type="StyleBoxTexture" id="Style_health_fill"]
+texture = ExtResource("4_hfill")
+expand_margin_left = -3.0
+expand_margin_top = -3.0
+expand_margin_right = -3.0
+expand_margin_bottom = -3.0
+
+[sub_resource type="StyleBoxTexture" id="Style_stamina_fill"]
+texture = ExtResource("5_sfill")
+expand_margin_left = -3.0
+expand_margin_top = -3.0
+expand_margin_right = -3.0
+expand_margin_bottom = -3.0
+
+[sub_resource type="StyleBoxTexture" id="Style_toolbar"]
+texture = ExtResource("6_toolbar")
+texture_margin_left = 6.0
+texture_margin_top = 6.0
+texture_margin_right = 6.0
+texture_margin_bottom = 6.0
+content_margin_left = 6.0
+content_margin_top = 6.0
+content_margin_right = 6.0
+content_margin_bottom = 6.0
 
 [sub_resource type="Theme" id="Theme_hud"]
 default_font_size = 10
+Label/colors/font_color = Color(0.29, 0.18, 0.16, 1)
 
 [node name="HUD" type="CanvasLayer"]
 script = ExtResource("1_hud")
@@ -34,6 +74,7 @@ offset_top = 4.0
 offset_right = 140.0
 offset_bottom = 80.0
 mouse_filter = 2
+theme_override_styles/panel = SubResource("Style_panel")
 
 [node name="VBox" type="VBoxContainer" parent="Root/InfoPanel"]
 layout_mode = 2
@@ -66,7 +107,7 @@ text = "HP"
 
 [node name="HealthBar" type="ProgressBar" parent="Root/InfoPanel/VBox/HealthRow"]
 unique_name_in_owner = true
-custom_minimum_size = Vector2(0, 6)
+custom_minimum_size = Vector2(0, 10)
 layout_mode = 2
 size_flags_horizontal = 3
 size_flags_vertical = 4
@@ -87,7 +128,7 @@ text = "ST"
 
 [node name="StaminaBar" type="ProgressBar" parent="Root/InfoPanel/VBox/StaminaRow"]
 unique_name_in_owner = true
-custom_minimum_size = Vector2(0, 6)
+custom_minimum_size = Vector2(0, 10)
 layout_mode = 2
 size_flags_horizontal = 3
 size_flags_vertical = 4
@@ -100,7 +141,7 @@ show_percentage = false
 [node name="CoinsLabel" type="Label" parent="Root/InfoPanel/VBox"]
 unique_name_in_owner = true
 layout_mode = 2
-theme_override_colors/font_color = Color(1, 0.88, 0.35, 1)
+theme_override_colors/font_color = Color(0.62, 0.42, 0.05, 1)
 text = "Coins: 0"
 
 [node name="ToolLabel" type="Label" parent="Root/InfoPanel/VBox"]
@@ -112,30 +153,36 @@ text = "Tool: Pulaski"
 unique_name_in_owner = true
 visible = false
 layout_mode = 2
-theme_override_colors/font_color = Color(1, 0.55, 0.45, 1)
+theme_override_colors/font_color = Color(0.7, 0.15, 0.12, 1)
 text = "Tired (go to bed!)"
 
 [node name="ExhaustedLabel" type="Label" parent="Root/InfoPanel/VBox"]
 unique_name_in_owner = true
 visible = false
 layout_mode = 2
-theme_override_colors/font_color = Color(1, 0.8, 0.4, 1)
+theme_override_colors/font_color = Color(0.65, 0.35, 0.05, 1)
 text = "Exhausted (no stamina)"
 
-[node name="ToolButtons" type="HBoxContainer" parent="Root"]
+[node name="Toolbar" type="PanelContainer" parent="Root"]
 unique_name_in_owner = true
 layout_mode = 1
-anchors_preset = 12
+anchors_preset = 7
+anchor_left = 0.5
 anchor_top = 1.0
-anchor_right = 1.0
+anchor_right = 0.5
 anchor_bottom = 1.0
-offset_left = 4.0
-offset_top = -22.0
-offset_right = -4.0
-offset_bottom = -4.0
+offset_left = -100.0
+offset_top = -34.0
+offset_right = 100.0
+offset_bottom = -2.0
 grow_horizontal = 2
 grow_vertical = 0
-theme_override_constants/separation = 2
+theme_override_styles/panel = SubResource("Style_toolbar")
+
+[node name="ToolButtons" type="HBoxContainer" parent="Root/Toolbar"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_constants/separation = 1
 
 [node name="Fade" type="ColorRect" parent="Root"]
 unique_name_in_owner = true

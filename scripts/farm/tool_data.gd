@@ -16,6 +16,8 @@ enum Kind { PULASKI, SICKLE, PICKAXE, WATERING_CAN }
 @export var kind: Kind = Kind.PULASKI
 ## True for GDD tools: a use costs stamina and is blocked at 0 stamina.
 @export var is_tool: bool = true
+## 16x16 hotbar icon (ART: assets/sprites/item_<tool>.png). null = text only.
+@export var icon: Texture2D
 ## Stamina (percent of the bar) spent per use. PLACEHOLDER: the GDD does not
 ## give per-tool costs (open question).
 @export_range(0.0, 100.0, 0.5) var stamina_cost: float = 2.0

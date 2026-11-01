@@ -1,7 +1,9 @@
-[gd_resource type="Resource" script_class="SpeciesData" load_steps=3 format=3]
+[gd_resource type="Resource" script_class="SpeciesData" load_steps=5 format=3]
 
 [ext_resource type="Script" path="res://scripts/creatures/species_data.gd" id="1_species"]
 [ext_resource type="Resource" path="res://resources/stats/stat_letters_1_20.tres" id="2_bands"]
+[ext_resource type="SpriteFrames" path="res://resources/monsters/cinderkin_frames.tres" id="3_frames"]
+[ext_resource type="Texture2D" path="res://assets/portraits/cinderkin_portrait.png" id="4_portrait"]
 
 [resource]
 script = ExtResource("1_species")
@@ -12,8 +14,11 @@ modifier = &"fire"
 biomes = PackedInt32Array(1)
 wild_catchable = true
 favorite_food_id = &"wet_waxweed"
+preferred_food_type = &"plant"
 favorite_crops = PackedStringArray("wet_waxweed", "wet_waxweed", "wet_waxweed", "")
 stat_bands = ExtResource("2_bands")
 rank_variants = {"S": &"blue_flame"}
 variant_names = {&"blue_flame": "Blue-flame Cinderkin"}
 color = Color(0.62, 0.5, 0.4, 1)
+sprite_frames = ExtResource("3_frames")
+portrait = ExtResource("4_portrait")

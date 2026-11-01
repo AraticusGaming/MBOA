@@ -1,0 +1,15 @@
+[gd_resource type="Resource" script_class="PenData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/creatures/pen_data.gd" id="1_pen"]
+
+[resource]
+script = ExtResource("1_pen")
+id = &"barn"
+display_name = "Barn"
+capacity = 20
+upgrade_step = 20
+max_upgrades = 4
+upgrade_costs = PackedInt32Array()
+needs_daily_care = true
+requires_bond = true
+color = Color(0.62, 0.28, 0.22, 1)

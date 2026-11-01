@@ -12,6 +12,9 @@ const CROP := "res://resources/crops/placeholder_crop.tres"
 func _run_tests() -> void:
 	_test_tileset()
 	_test_player_frames()
+	_test_autotile_mapping()
+	_test_decor_layer()
+	_test_new_assets()
 	_test_crop_frames()
 	_test_farm_tiles()
 	await _test_player_animation()
@@ -28,7 +31,13 @@ func _test_tileset() -> void:
 	if src == null:
 		return
 	check_eq(src.texture.get_size(), Vector2(128, 112), "farm_tiles.png is 128x112 (8 cols; M1b rows appended)")
-	check_eq(src.get_tiles_count(), 13, "13 tiles defined (ART_NOTES 0-12)")
+	check_eq(src.get_tiles_count(), 51, "51 tiles defined (ART_NOTES 0-55 minus empty 19-23)")
+	var missing := []
+	for i in 56:
+		var has := src.has_tile(Vector2i(i % 8, i / 8))
+		if has == (i >= 19 and i <= 23):
+			missing.append(i)
+	check(missing.is_empty(), "tiles 0-18 and 24-55 exist, 19-23 skipped (bad: %s)" % str(missing))
 	var map := load(MAPPING) as FarmTileMapping
 	check(map != null, "tile mapping loads")
 	for coords in [map.empty_tile, map.tilled_tile, map.watered_tile]:
@@ -84,7 +93,13 @@ func _test_farm_tiles() -> void:
 	var map := grid.tile_mapping
 	var c := Vector2i(2, 2)
 	var at := func() -> Vector2i: return grid.soil_layer.get_cell_atlas_coords(c)
-	check_eq(at.call(), map.empty_tile, "empty plot -> dirt tile")
+	check_eq(at.call(), map.get_atlas_coords(grid.get_plot(c), c), "empty plot -> its dirt tile")
+	check(at.call() == map.empty_tile or map.empty_variants.has(at.call()), "empty plot is dirt or a dirt variant")
+	var variants := 0
+	for cell in grid.soil_layer.get_used_cells():
+		if map.empty_variants.has(grid.soil_layer.get_cell_atlas_coords(cell)):
+			variants += 1
+	check(variants > 5 and variants < 60, "some (not all) dirt cells use variants 17/18 (%d)" % variants)
 	check_eq(grid.soil_layer.get_used_cells().size(), 96, "every plot has a soil tile")
 	grid.till(c)
 	check_eq(at.call(), map.tilled_tile, "tilled -> tilled_soil")
@@ -130,3 +145,109 @@ func _test_player_animation() -> void:
 	check_eq(player.get_feet_cell(), Vector2i(4, 2), "feet cell matches grid cell")
 	main.queue_free()
 	await process_frame
+
+
+func _test_autotile_mapping() -> void:
+	var map := load(MAPPING) as FarmTileMapping
+	check_eq([FarmTileMapping.N, FarmTileMapping.E, FarmTileMapping.S, FarmTileMapping.W], [1, 2, 4, 8],
+		"ART bitmask N=1 E=2 S=4 W=8")
+	var ok := true
+	for mask in 16:
+		var f := map.fence_coords(mask)
+		var p := map.path_coords(mask)
+		if f != Vector2i((24 + mask) % 8, (24 + mask) / 8) or p != Vector2i((40 + mask) % 8, (40 + mask) / 8):
+			ok = false
+	check(ok, "fence = 24 + mask, path = 40 + mask for all 16 masks")
+	check_eq(map.fence_coords(0), Vector2i(0, 3), "fence lone post = tile 24 (0,3)")
+	check_eq(map.fence_coords(10), Vector2i(2, 4), "fence E+W straight = tile 34")
+	check_eq(map.path_coords(15), Vector2i(7, 6), "path cross = tile 55")
+	var c := Vector2i(5, 5)
+	var set := {c + Vector2i.UP: true, c + Vector2i.RIGHT: true}
+	check_eq(FarmTileMapping.mask_for(c, set), 3, "N+E neighbours -> mask 3 (corner)")
+	set[c + Vector2i.DOWN] = true
+	set[c + Vector2i.LEFT] = true
+	check_eq(FarmTileMapping.mask_for(c, set), 15, "all neighbours -> 15")
+	check_eq(FarmTileMapping.mask_for(c, {Vector2i(6, 6): true}), 0, "diagonals don't count")
+	check_eq(map.get_atlas_coords(null), map.empty_tile, "no cell -> plain dirt")
+	var stable := map.empty_coords(Vector2i(3, 4)) == map.empty_coords(Vector2i(3, 4))
+	check(stable, "dirt variant is stable per cell")
+
+
+func _test_decor_layer() -> void:
+	var d := FarmDecor.new()
+	d.tile_set = load(TILESET)
+	d.tile_mapping = load(MAPPING)
+	d.fence_rects = [Rect2i(0, 0, 4, 3)]
+	d.fence_gaps = [Vector2i(3, 1)]
+	d.path_rects = [Rect2i(6, 0, 3, 1)]
+	d.path_cells = [Vector2i(7, 1)]
+	root.add_child(d)
+	d.rebuild()  # _ready doesn't run during _initialize
+	var map := d.tile_mapping
+	check_eq(d.fences.size(), 9, "fence border of a 4x3 rect minus one gap")
+	check_eq(d.get_cell_atlas_coords(Vector2i(0, 0)), map.fence_coords(FarmTileMapping.E | FarmTileMapping.S),
+		"top-left fence corner = E+S (tile 30)")
+	check_eq(d.get_cell_atlas_coords(Vector2i(1, 0)), map.fence_coords(10), "top fence = E+W straight")
+	check_eq(d.get_cell_atlas_coords(Vector2i(0, 1)), map.fence_coords(5), "left fence = N+S straight")
+	check_eq(d.get_cell_atlas_coords(Vector2i(3, 0)), map.fence_coords(FarmTileMapping.W), "gate: fence end cap W")
+	check_eq(d.get_cell_atlas_coords(Vector2i(3, 1)), Vector2i(-1, -1), "gate cell is open")
+	check_eq(d.get_cell_atlas_coords(Vector2i(7, 0)), map.path_coords(FarmTileMapping.E | FarmTileMapping.S | FarmTileMapping.W),
+		"path T-junction (E+S+W)")
+	check_eq(d.get_cell_atlas_coords(Vector2i(7, 1)), map.path_coords(FarmTileMapping.N), "path end cap N")
+	d.free()
+	var farm := (load("res://scenes/farm/farm.tscn") as PackedScene).instantiate()
+	root.add_child(farm)
+	var decor := farm.get_node_or_null("Decor") as FarmDecor
+	if decor:
+		decor.rebuild()
+	check(decor != null and decor.fences.size() > 10 and decor.paths.size() > 10, "farm has fences and paths")
+	var used := 0
+	if decor:
+		used = decor.get_used_cells().size()
+	check(decor != null and used == decor.fences.size() + decor.paths.size(), "every fence/path cell has a tile")
+	farm.free()
+
+
+func _test_new_assets() -> void:
+	var bed := (load("res://scenes/world/bed.tscn") as PackedScene).instantiate()
+	var spr := bed.get_node_or_null("Sprite2D") as Sprite2D
+	check(spr != null and spr.texture != null and spr.texture.get_size() == Vector2(16, 32), "bed uses bed.png (16x32)")
+	var shape := (bed.get_node("CollisionShape2D") as CollisionShape2D).shape as RectangleShape2D
+	check_eq(shape.size, Vector2(16, 32), "bed collision 16x32")
+	bed.free()
+	for t in ["pulaski", "sickle", "pickaxe", "watering_can"]:
+		var td := load("res://resources/tools/%s.tres" % t) as ToolData
+		check(td.icon != null and td.icon.get_size() == Vector2(16, 16), "%s has its 16x16 icon" % t)
+	var wax := load("res://resources/items/wet_waxweed.tres") as ItemData
+	check(wax.icon != null and wax.icon.get_size() == Vector2(16, 16), "Wet Waxweed item icon")
+	var tree := load("res://resources/trees/placeholder_tree.tres") as TreeData
+	check(tree.sprite_sheet != null and tree.sprite_sheet.get_size() == Vector2(160, 48), "tree_stages.png 160x48")
+	check_eq(tree.get_frame_region(TreeData.Stage.GROWN), Rect2(96, 0, 32, 48), "grown tree = frame 3")
+	check_eq(tree.get_frame_region(TreeData.Stage.STUMP), Rect2(128, 0, 32, 48), "stump = frame 4")
+	# Loaded untyped by path: naming SpeciesCatalog in this suite trips the
+	# engine's "resources still in use at exit" quirk.
+	var cinder = load("res://resources/monsters/species/cinderkin.tres")
+	var sf: SpriteFrames = cinder.sprite_frames
+	check(sf != null, "Cinderkin has SpriteFrames")
+	if sf:
+		var ok := true
+		for anim in ["idle", "walk"]:
+			for dir in ["down", "left", "right", "up"]:
+				var n := StringName("%s_%s" % [anim, dir])
+				if not sf.has_animation(n) or sf.get_frame_count(n) != 4:
+					ok = false
+		check(ok, "Cinderkin idle/walk x 4 directions, 4 frames each")
+		var f := sf.get_frame_texture(&"walk_left", 0) as AtlasTexture
+		check(f != null and f.region == Rect2(128, 32, 32, 32), "walk_left frame 0 = sheet index 12 (32x32)")
+		check_eq(sf.get_animation_speed(&"idle_down"), 6.0, "Cinderkin idle 6 fps")
+	check(cinder.portrait != null and cinder.portrait.get_size() == Vector2(64, 64), "Cinderkin portrait 64x64")
+	var hud := (load("res://scenes/ui/hud.tscn") as PackedScene).instantiate()
+	var panel := hud.get_node("Root/InfoPanel") as PanelContainer
+	var sb := panel.get_theme_stylebox(&"panel") as StyleBoxTexture
+	check(sb != null and sb.texture.resource_path.ends_with("hud_panel.png"), "HUD panel uses hud_panel.png")
+	var bar := hud.get_node("%StaminaBar") as ProgressBar
+	var bg := bar.get_theme_stylebox(&"background") as StyleBoxTexture
+	check(bg != null and bg.texture.resource_path.ends_with("bar_frame.png"), "bars use bar_frame.png")
+	var tb := (hud.get_node("%Toolbar") as PanelContainer).get_theme_stylebox(&"panel") as StyleBoxTexture
+	check(tb != null and tb.texture.resource_path.ends_with("toolbar_frame.png"), "hotbar uses toolbar_frame.png")
+	hud.free()

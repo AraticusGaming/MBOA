@@ -1,6 +1,7 @@
-[gd_resource type="Resource" script_class="ItemData" load_steps=2 format=3]
+[gd_resource type="Resource" script_class="ItemData" load_steps=3 format=3]
 
 [ext_resource type="Script" path="res://scripts/core/item_data.gd" id="1_item"]
+[ext_resource type="Texture2D" path="res://assets/sprites/item_wet_waxweed.png" id="9_icon"]
 
 [resource]
 script = ExtResource("1_item")
@@ -11,4 +12,6 @@ buy_price = 0
 sell_price = 50
 max_stack = 99
 edible = false
+food_type = &"plant"
 color = Color(0.55, 0.6, 0.3, 1)
+icon = ExtResource("9_icon")

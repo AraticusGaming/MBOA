@@ -29,6 +29,9 @@ const BIOME_IDS: PackedStringArray = ["meadowlands", "woodland", "marsh", "lake_
 @export var wild_catchable: bool = true
 ## Item id of its favorite food (GDD: e.g. Rockback -> Snouter Roe).
 @export var favorite_food_id: StringName = &""
+## GDD: each monster has a preferred food type (ItemData.food_type).
+## PLACEHOLDER values.
+@export var preferred_food_type: StringName = &""
 ## GDD: a favorite crop for each season. Crop ids in GameClock.Season order
 ## (spring, summer, fall, winter); "" = none. PLACEHOLDER values.
 @export var favorite_crops: PackedStringArray = PackedStringArray(["", "", "", ""])
@@ -40,6 +43,11 @@ const BIOME_IDS: PackedStringArray = ["meadowlands", "woodland", "marsh", "lake_
 ## Display names of variants, e.g. {&"blue_flame": "Blue-flame Cinderkin"}.
 @export var variant_names: Dictionary = {}
 ## Placeholder body color (no creature sprites yet).
+## Animations idle_/walk_<down|left|right|up> (built from the ART sheet by
+## tools/godot/build_art_resources.gd). null = colored placeholder.
+@export var sprite_frames: SpriteFrames
+## 64x64 portrait (ART assets/portraits/). null = none.
+@export var portrait: Texture2D
 @export var color: Color = Color(0.7, 0.7, 0.7)
 
 

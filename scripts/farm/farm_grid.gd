@@ -490,11 +490,17 @@ func _draw_crop(plot: FarmPlot, rect: Rect2) -> void:
 		draw_rect(r.grow(1.0), Color.WHITE, false, 1.0)
 
 
-## Placeholder tree drawing (no tree art yet): size grows with the stage; a
+## Tree drawing: the TreeData sheet when set, else placeholder rects whose size grows with the stage; a
 ## grown tree's canopy extends above its cell.
 func _draw_tree(tree: FarmTree, rect: Rect2) -> void:
 	var data := get_tree_data(tree.tree_id)
 	if data == null:
+		return
+	var region := data.get_frame_region(tree.stage)
+	if region.has_area():
+		# ART_NOTES anchor: frame bottom-center on the cell's bottom-center.
+		var pos := Vector2(rect.get_center().x - region.size.x * 0.5, rect.end.y - region.size.y)
+		draw_texture_rect_region(data.sprite_sheet, Rect2(pos.round(), region.size), region)
 		return
 	var c := rect.get_center()
 	var bottom := rect.end.y
@@ -617,7 +623,7 @@ func _setup_soil_layer() -> void:
 
 func _update_tile(cell: Vector2i) -> void:
 	if soil_layer and is_in_bounds(cell):
-		soil_layer.set_cell(cell, tile_mapping.source_id, tile_mapping.get_atlas_coords(get_plot(cell)))
+		soil_layer.set_cell(cell, tile_mapping.source_id, tile_mapping.get_atlas_coords(get_plot(cell), cell))
 
 
 func _changed(cell: Vector2i) -> void:

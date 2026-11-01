@@ -1,12 +1,13 @@
 class_name Bed
 extends Area2D
-## Placeholder bed: stand on it and press interact to sleep (ends the day).
+## Bed (ART assets/sprites/bed.png, 16x32, a Sprite2D child): stand on it and press interact to sleep (ends the day).
 ## GDD: after sleeping or passing out the player wakes up in their bed, so on
 ## every Clock.day_started the player is moved to wake_offset from the bed.
 
 signal used(by: Node)
 
-@export var size: Vector2 = Vector2(16, 24)
+## Footprint (ART_NOTES: 16x32, one tile wide, two tall).
+@export var size: Vector2 = Vector2(16, 32)
 ## Where the player stands on waking, relative to the bed (just below it, so
 ## they are not standing on the bed's interact area).
 @export var wake_offset: Vector2 = Vector2(0, 24)
@@ -55,7 +56,10 @@ func _on_day_started(_day: int) -> void:
 		wake_player(get_tree().get_first_node_in_group(&"player") as Node2D)
 
 
+## Placeholder drawing only when there is no sprite.
 func _draw() -> void:
+	if get_node_or_null(^"Sprite2D") != null:
+		return
 	var r := Rect2(-size * 0.5, size)
 	draw_rect(r, color_frame)
 	draw_rect(r.grow(-2), color_sheet)
