@@ -15,3 +15,9 @@ where it differs from the GDD. Dated entries, newest last.
 - **Skipping a tournament.** Nothing bad happens. The player gets more time to prepare and can try at the next tournament. (Story tournaments gate progress, but skipping one only delays it.)
 - **Pass-out, items.** Money only, not items. Possible additional ~1-3% reputation hit (not yet implemented; reputation arrives in a later milestone).
 - **Angie.** Receptionist (Arena Admin) who runs the Assessment.
+- **Tools.** Sickle clears grass and weeds; pickaxe breaks rocks. (confirmed)
+- **Crops.** Out-of-season crops die at season change. (confirmed)
+- **Stamina.** About 2 per tool use; at 0 movement is slowed to 50%, not stacking with tired. (confirmed)
+- **Refills.** Eating refills depending on the food eaten (food values to come); the hot spring refills at a steady rate.
+- **Player health.** The player may not need HP at all; stamina is the main bar. Health bar is on hold pending a decision.
+- **Pass-out.** 10% of money plus a 1-3% reputation hit.
