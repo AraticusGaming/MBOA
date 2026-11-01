@@ -32,6 +32,7 @@ func _run_tests() -> void:
 	_test_tool_data()
 	_test_trees()
 	_test_obstacles()
+	_test_seasonal_crops()
 
 
 func _test_full_cycle(crop: CropData) -> void:
@@ -322,4 +323,55 @@ func _test_obstacles() -> void:
 	check(not grid2.get_plot(Vector2i(1, 1)).has_obstacle(), "the save replaces starting obstacles")
 	grid.free()
 	grid2.free()
+	clock.free()
+
+
+## Placeholder crops across seasons + Stardew season death (config toggle).
+func _test_seasonal_crops() -> void:
+	var ids := [&"turnip", &"carrot", &"tomato", &"pumpkin"]
+	var covered := 0
+	var all: Array[CropData] = [load(CROP_PATH) as CropData]
+	for id in ids:
+		var c := load("res://resources/crops/%s.tres" % id) as CropData
+		check(c != null and c.id == id and c.stage_days.size() == CropData.STAGE_COUNT - 1,
+			"crop %s loads with 3 stage-day entries" % id)
+		covered |= c.seasons
+		all.append(c)
+	check_eq(covered & 0b0111, 0b0111, "placeholder crops cover spring, summer and fall")
+	check_eq((load("res://resources/crops/carrot.tres") as CropData).get_season_names(),
+		PackedStringArray(["Spring", "Fall"]), "season names")
+	var clock := make_clock()
+	var grid := _make_grid(clock)
+	grid.crops = all
+	check(grid.kill_out_of_season_crops, "season death on by default")
+	var keep := FarmGrid.new()
+	keep.crops = all
+	keep.kill_out_of_season_crops = false
+	keep.clock = clock
+	root.add_child(keep)
+	keep._ready()
+	for g in [grid, keep]:
+		for x in 3:
+			g.till(Vector2i(x, 0))
+		g.plant(Vector2i(0, 0), &"placeholder_crop")
+		g.plant(Vector2i(1, 0), &"turnip")
+		g.plant(Vector2i(2, 0), &"carrot")
+	check(not grid.plant(Vector2i(3, 0), &"tomato"), "tomato can't be planted in spring")
+	var died: Array = []
+	grid.crop_died.connect(func(c, id): died.append([c, id]))
+	var guard := 0
+	while clock.season == GameClock.Season.SPRING and guard < 100:
+		clock.sleep()
+		guard += 1
+	check_eq(clock.season, GameClock.Season.SUMMER, "reached summer")
+	check_eq(died, [[Vector2i(1, 0), &"turnip"], [Vector2i(2, 0), &"carrot"]],
+		"spring-only crops die at the season change")
+	check(grid.get_plot(Vector2i(1, 0)).state == FarmPlot.State.TILLED, "dead crop leaves tilled soil")
+	check(grid.get_plot(Vector2i(0, 0)).is_planted(), "all-season crop survives")
+	check(keep.get_plot(Vector2i(1, 0)).is_planted() and keep.get_plot(Vector2i(2, 0)).is_planted(),
+		"toggle off: crops survive")
+	grid.till(Vector2i(3, 0))
+	check(grid.plant(Vector2i(3, 0), &"tomato"), "tomato plants in summer")
+	grid.free()
+	keep.free()
 	clock.free()

@@ -4,7 +4,8 @@ extends Resource
 ##
 ## GDD: each crop has four growth stages and crops are tied to seasons.
 ## OPEN QUESTIONS (GDD): crop types, days per growth stage, season assignments.
-## Values in the .tres files are PLACEHOLDERS until those are decided.
+## Not GDD, placeholder (Ledan ruling): every crop, its stage days and its
+## seasons in resources/crops/*.tres are placeholders until those are decided.
 
 ## The GDD fixes four growth stages; the 4th is harvest-ready.
 const STAGE_COUNT := 4
@@ -29,6 +30,9 @@ const STAGE_COUNT := 4
 ## Sheet frame for each of the four stages. crop_basic.png: [0 seed,
 ## 1 sprout, 2 leafy, 3 harvest-ready].
 @export var stage_frames: PackedInt32Array = PackedInt32Array([0, 1, 2, 3])
+## Modulate applied to the sheet so placeholder crops sharing crop_basic.png
+## look different (white = unchanged).
+@export var sprite_tint: Color = Color.WHITE
 
 
 ## Total watered days from planting to harvest-ready.
@@ -56,6 +60,16 @@ func is_mature(growth_days: int) -> bool:
 ## True if the crop can be planted in `season` (GameClock.Season value).
 func grows_in(season: int) -> bool:
 	return (seasons & (1 << season)) != 0
+
+
+## Season names this crop grows in, e.g. ["Spring", "Fall"].
+func get_season_names() -> PackedStringArray:
+	var names := PackedStringArray()
+	var all := ["Spring", "Summer", "Fall", "Winter"]
+	for i in all.size():
+		if grows_in(i):
+			names.append(all[i])
+	return names
 
 
 ## Sheet frame for a crop that has grown `growth_days` watered days.

@@ -30,3 +30,11 @@ Rulings from Ledan (Stardew-style), awaiting the user's confirmation, are marked
 | Tree growth times **(Ledan: data placeholders)** | 7 days per stage (seed, seedling, sapling) | `placeholder_tree.tres` `stage_days` |
 | Digging out a seed/seedling | 1 Pulaski hit | `placeholder_tree.tres` `dig_out_hits` |
 | Stone item | dropped by rocks | `resources/obstacles/rock.tres` `drop_item_id` |
+
+## Crops
+| Item | Value | Where |
+|------|-------|-------|
+| Crop list **(Ledan)** | Turnip (spring), Carrot (spring+fall), Tomato (summer), Pumpkin (fall), Placeholder Crop (all seasons, test/dev crop); no winter crop (Stardew) | `resources/crops/*.tres` |
+| Days per growth stage **(Ledan)** | Turnip 1/1/2, Carrot 1/2/1, Tomato 2/2/2, Pumpkin 2/3/3, Placeholder 1/1/1 | `stage_days` |
+| Crop sprites | all share `crop_basic.png`, tinted per crop | `sprite_tint` |
+| Out-of-season crops die at the season change **(Ledan, Stardew rule)** | on; the plot goes back to tilled soil (no dead-crop object) | `FarmGrid.kill_out_of_season_crops` |

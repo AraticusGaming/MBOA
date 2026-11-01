@@ -20,6 +20,8 @@ extends Node2D
 
 signal plot_changed(cell: Vector2i)
 signal harvested(crop_id: StringName, cell: Vector2i)
+## A crop died because the season changed and it doesn't grow in the new one.
+signal crop_died(cell: Vector2i, crop_id: StringName)
 ## Emitted when a tool/interact is attempted on a cell (success or not).
 signal action_performed(cell: Vector2i, action: StringName, success: bool)
 ## A Pulaski hit landed on a tree (hits = hits taken in its current stage).
@@ -45,9 +47,12 @@ signal items_dropped(cell: Vector2i, item_id: StringName, amount: int)
 ## Crop planted by the Seed tool (empty = first entry of `crops`).
 @export var selected_seed_id: StringName = &""
 ## GDD: crops are tied to seasons. When true, a crop can only be planted in a
-## season listed in its CropData.seasons. (What happens to crops when the
-## season changes is not specified by the GDD, so nothing happens yet.)
+## season listed in its CropData.seasons.
 @export var enforce_crop_seasons: bool = true
+## Not GDD, placeholder (Ledan ruling, Stardew rule): when the season changes,
+## crops that don't grow in the new season die (the plot goes back to tilled
+## soil). Toggle off to keep them.
+@export var kill_out_of_season_crops: bool = true
 ## Tree types known to this grid (resources/trees/*.tres).
 @export var trees: Array[TreeData] = []
 ## Trees placed on a new farm: cell (Vector2i) -> stage name ("seed",
@@ -103,6 +108,8 @@ func _ready() -> void:
 		clock = get_node_or_null("/root/Clock") as GameClock
 	if clock and not clock.day_started.is_connected(_on_day_started):
 		clock.day_started.connect(_on_day_started)
+	if clock and not clock.season_changed.is_connected(_on_season_changed):
+		clock.season_changed.connect(_on_season_changed)
 
 
 # --- Queries ----------------------------------------------------------------
@@ -334,6 +341,31 @@ func hit_tree(cell: Vector2i) -> bool:
 	return true
 
 
+## Season change (Stardew rule, placeholder): crops that don't grow in
+## `season` die. Returns how many died. No-op when kill_out_of_season_crops
+## is off.
+func kill_out_of_season(season: int) -> int:
+	if not kill_out_of_season_crops:
+		return 0
+	var died := 0
+	for y in grid_size.y:
+		for x in grid_size.x:
+			var cell := Vector2i(x, y)
+			var plot := get_plot(cell)
+			if not plot.is_planted():
+				continue
+			var crop := get_crop(plot.crop_id)
+			if crop != null and crop.grows_in(season):
+				continue
+			var crop_id := plot.crop_id
+			plot.clear_crop()
+			plot.state = FarmPlot.State.TILLED
+			died += 1
+			_changed(cell)
+			crop_died.emit(cell, crop_id)
+	return died
+
+
 ## Day rollover: grow watered crops, then reset watered flags.
 func advance_day() -> void:
 	for i in plots.size():
@@ -424,7 +456,8 @@ func _draw_crop(plot: FarmPlot, rect: Rect2) -> void:
 		# Bottom-center the frame on the cell (taller crop frames grow upward).
 		var pos := Vector2(rect.position.x + (rect.size.x - region.size.x) * 0.5,
 			rect.end.y - region.size.y)
-		draw_texture_rect_region(crop.sprite_sheet, Rect2(pos.round(), region.size), region)
+		draw_texture_rect_region(crop.sprite_sheet, Rect2(pos.round(), region.size), region,
+			crop.sprite_tint)
 		return
 	var t := float(crop.get_stage(plot.growth_days)) / float(CropData.STAGE_COUNT - 1)
 	var size := lerpf(4.0, cell_size - 4.0, t)
@@ -575,6 +608,10 @@ func _changed(cell: Vector2i) -> void:
 	_update_tile(cell)
 	plot_changed.emit(cell)
 	queue_redraw()
+
+
+func _on_season_changed(new_season: int, _year: int) -> void:
+	kill_out_of_season(new_season)
 
 
 func _on_day_started(_day: int) -> void:
