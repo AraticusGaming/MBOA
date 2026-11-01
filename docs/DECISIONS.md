@@ -12,3 +12,6 @@ where it differs from the GDD. Dated entries, newest last.
 - **Family grid.** The diagonal cells (same family) produce the same monster, since both parents are the same family: the Pedigree parent's species.
 - **Stat letters for a 1-20 stat.** D 1-4, C 5-9, B 10-14, A 15-17, S 18-20. (Bands for stats with a different range, such as 1-25, are not defined yet.)
 - **GDD source.** The PDF (`docs/GDD.pdf`) is the original and includes the villager table, which the markdown version dropped. The family crossing grid is empty in both.
+- **Skipping a tournament.** Nothing bad happens. The player gets more time to prepare and can try at the next tournament. (Story tournaments gate progress, but skipping one only delays it.)
+- **Pass-out, items.** Money only, not items. Possible additional ~1-3% reputation hit (not yet implemented; reputation arrives in a later milestone).
+- **Angie.** Receptionist (Arena Admin) who runs the Assessment.

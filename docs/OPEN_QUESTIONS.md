@@ -7,8 +7,8 @@ the inconsistencies and gaps found when reviewing the GDD. Undecided numbers go 
 Pass-out money penalty (10%), clock numbers, habitat gating, starting biome, family grid diagonal, stat letter bands, villager table.
 
 ## Priority now (blocks or shapes Milestones 1.5 to 3)
-1. Pass-out: size of the fixed bonding drop, and whether carried items count along with money.
-2. Which tournaments are story gates, and what happens if the player skips a seasonal one.
+1. Pass-out: size of the fixed bonding drop, and whether the ~1-3% reputation hit is in (and the exact value).
+2. Which tournaments are story gates, and how many seasons the player can delay each one.
 3. Crop growth days per stage, season assignments, and tool upgrades.
 4. Stamina cost per tool use and what "health" means outside battle.
 5. Traps: cost, tier and bait effect on catch chance; which monsters are passive and trappable (Milestone 2 Assessment needs at least a simple rule).
