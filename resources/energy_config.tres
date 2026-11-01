@@ -7,4 +7,5 @@ script = ExtResource("1_energy")
 max_health = 100.0
 max_stamina = 100.0
 exhausted_speed_multiplier = 0.5
-hot_spring_stamina_per_game_hour = 50.0
+eat_stamina_refill = 25.0
+hot_spring_stamina_refill = 50.0

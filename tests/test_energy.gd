@@ -38,11 +38,16 @@ func _test_state() -> void:
 	check(ps.is_exhausted() and not ps.can_use_tools(), "exhausted at 0: no tools")
 	check(not ps.spend_stamina(1.0), "can't spend at 0")
 	check_eq(ps.get_speed_multiplier(), ps.energy_config.exhausted_speed_multiplier, "slowed at 0")
-	ps.eat(25.0)
-	check_eq(ps.stamina, 25.0, "eating refills stamina")
-	ps.rest_in_hot_spring(30.0)
-	check_eq(ps.stamina, 25.0 + ps.energy_config.hot_spring_stamina_per_game_hour * 0.5,
-		"hot spring refills per game hour")
+	ps.eat()
+	check_eq(ps.stamina, ps.energy_config.eat_stamina_refill, "eating: flat refill (placeholder)")
+	check_eq(ps.energy_config.eat_stamina_refill, 25.0, "placeholder eat refill 25")
+	ps.rest_in_hot_spring()
+	check_eq(ps.stamina, 25.0 + ps.energy_config.hot_spring_stamina_refill,
+		"hot spring: flat refill (placeholder)")
+	ps.refill_stamina(0.0)
+	ps.spend_stamina(1000.0)
+	ps.eat(10.0)
+	check_eq(ps.stamina, 10.0, "eat amount override")
 	ps.refill_stamina()
 	check_eq(ps.stamina, 100.0, "refill to full")
 	check_eq(ps.get_speed_multiplier(), 1.0, "normal speed with stamina")
@@ -94,8 +99,12 @@ func _test_player_tool_gating() -> void:
 		"slowed at 0 stamina")
 	clock.advance_minutes(18.0 * 60.0)
 	check_eq(p.get_current_speed(),
-		normal * p.tired_speed_multiplier * ps.energy_config.exhausted_speed_multiplier,
-		"tired and exhausted multipliers stack (placeholder rule)")
+		normal * minf(p.tired_speed_multiplier, ps.energy_config.exhausted_speed_multiplier),
+		"tired + exhausted: the worse multiplier, not the product (ruling)")
+	check_eq(p.get_current_speed(), normal * 0.5, "tired + exhausted = 50%")
+	ps.refill_stamina()
+	check_eq(p.get_current_speed(), normal * p.tired_speed_multiplier, "tired only = 75%")
+	ps.spend_stamina(1000.0)
 	# Harvest is free even when exhausted (GDD: walk up and click).
 	var plot := grid.get_plot(Vector2i(0, 0))
 	plot.growth_days = (load(CROP_PATH) as CropData).get_days_to_mature()

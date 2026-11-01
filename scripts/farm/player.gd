@@ -136,7 +136,9 @@ func get_current_speed() -> float:
 	var tired := clock != null and clock.is_tired
 	var mult := tired_speed_multiplier if tired else 1.0
 	if player_state:
-		mult *= player_state.get_speed_multiplier()  # GDD: slowed at 0 stamina
+		# GDD: slowed at 0 stamina. Not GDD, placeholder (Ledan ruling): the two
+		# slowdowns do not stack; use the worse (minimum) multiplier.
+		mult = minf(mult, player_state.get_speed_multiplier())
 	return move_speed * mult
 
 

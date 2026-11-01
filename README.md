@@ -44,7 +44,7 @@ Milestone 1.5 (align with the GDD):
       `StatLetterBands` + `resources/stats/stat_letters_1_20.tres`, GDD overall-rank helper
 - [x] Removed the per-season "climate" hook (GDD climate = egg/pregnancy environment, M7)
 - [x] Health and stamina bars (100%); tool uses cost stamina; at 0 stamina no tools and
-      slower movement; refill by sleeping, `eat()` and `rest_in_hot_spring()` (stubs)
+      slower movement; refill by sleeping, `eat()` and `rest_in_hot_spring()` (flat placeholder refills)
 - [x] GDD tools as data (`resources/tools/`): Pulaski, sickle, pickaxe, watering can (1 tile),
       plus the seed bag; trees with four stages and GDD hit counts (`resources/trees/`)
 - [x] Crop data: four growth stages, per-stage days and a season tag (`resources/crops/`)
