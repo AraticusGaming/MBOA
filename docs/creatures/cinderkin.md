@@ -32,8 +32,8 @@ Grey-brown fur with a cream chest and muzzle, huge round amber eyes, large point
 | Taming | Food (Waxweed) as the first test method | proposal |
 | Overworld size | small, 16x16 with idle 2-4 frames | proposal |
 
-## Open questions for the user
-- Is Wet Waxweed a farmable crop (a moss patch or planter) or a forage item from the Woodland biome? It matters because the GDD wants favorite foods to be grown on the farm.
-- Is the blue-flame old Cinderkin a rare variant, a hidden rank, or just lore?
-- Can Cinderkin fly or glide in game (for example crossing gaps) or is it flavor only?
-- Is it wild-catchable, or only produced by breeding a Critter with Fire?
+## Rulings (user, 2026-11-01)
+- Wet Waxweed is farmable, but the patch must be placed **near trees**.
+- The blue-flame old Cinderkin is **S rank**.
+- Cinderkin **glides in game**, usually from tree to tree.
+- It **can be caught in the wild** (not only bred).
