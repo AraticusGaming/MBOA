@@ -47,6 +47,10 @@ one pixel scale. Colored (plum-brown / dark green / dark red) outlines, never pu
 - `python3 tools/art/gen_slice3_creatures.py` writes the Woodland creature sheets and portraits
   (moss_bun, blue_jay, bramble_cub). It takes an optional `--preview DIR`, and
   `preview_slice3_creatures.py` renders the 8x previews and a line-up next to the Cinderkin.
+- `python3 tools/art/gen_slice3_buildings.py` writes the pasture tileset, the Woodland habitat
+  plot (full, ground and objects layers) and the barn stages. It takes an optional
+  `--preview DIR`, and `preview_slice3_buildings.py` renders the 8x previews, a fence ring test
+  and a mock farm with the barn, pasture, habitat, player and creatures.
 
 ## Godot import
 Use nearest filtering (already set in `project.godot`), no mipmaps, integer scaling.
@@ -379,6 +383,89 @@ rename them. No palette colors were added (indices 0-41 only).
   pivot, so they line up on the same ground line.
 - Portraits: bust/face, transparent background, same palette and lighting as
   cinderkin_portrait.png.
+
+## assets/tilesets/pasture_tiles.png (128x48, 16x16 tiles, 8 columns x 3 rows)
+Livestock fence for the pasture. It uses the same autotile rule as the farm fence: tile = 0 + mask,
+with N=1, E=2, S=4, W=8 (a neighbour counts if it is a fence **or a gate** cell). It looks
+different from the brown farm fence (farm_tiles 24-39) on purpose:
+- The rails are white-washed (white_warm/stone_pale) with a cool `stone_dark` outline.
+- Two wide plank rails sit higher (rows 2-11, the farm fence uses 4-12).
+- The posts are taller, run rows 0-14, and have pointed caps.
+
+| Index | Tile | Notes |
+|---|---|---|
+| 0-15 | pasture fence, mask 0-15 | Same layout as the farm fence table above. Post centred at x 5-10. Rails reach x=0 / x=15 for W / E, and the vertical rail (x 6-9) reaches y=0 / y=15 for N / S. |
+| 16 | gate_h_closed | Gate in a horizontal (E-W) run. It joins rails at both edges, and has stiles, a diagonal brace and a latch on the right. |
+| 17 | gate_h_open | The same gate swung open toward the viewer on its west hinge. The panel is at x 0-4 and the rest of the cell is passable. |
+| 18 | gate_v_closed | Gate in a vertical (N-S) run, seen edge-on as a plank column with cross boards. |
+| 19 | gate_v_open | The N-S gate swung east on its north hinge. The panel lies along the top of the cell and the passage below is clear. |
+| 20 | water_trough | Wooden trough with water, props layer. |
+| 21 | hay_bale | Props layer. |
+| 22 | feed_trough | Trough with carrots, tomatoes and greens, props layer. |
+| 23 | (empty) | Reserved. |
+
+- Gates are natural wood (tan/brown_light/brown_mid, brown_dark outline) so they stand out from
+  the white fence. Each gate is 1 tile wide, and you open or close it by swapping 16<->17 or 18<->19.
+- Everything except the props is transparent. Put it on an overlay layer above grass, like the farm fence.
+
+## assets/sprites/habitat_woodland*.png (64x64 each, 4x4 tiles)
+The GDD only says that a habitat holds 12 monsters and is built with Rowan. It gives no size,
+so this is the 4x4-tile (64x64) default.
+- **Footprint/anchor:** top-left on a tile corner, covering 4x4 cells. Bottom-centre = (32, 64)
+  if you prefer a bottom-centre pivot.
+- **Gate opening:** bottom side, x 24-39 (straddles cells 1 and 2 of the bottom row), with gate
+  posts at x 18-23 and 40-45. It has no swinging gate. The interaction point is (32, 64).
+- **Fence:** a mossy split-rail ring. The back rail is at y 3-6 and the side rails are at
+  x 1-4 / 59-62. The front rail is at y 56-59. The fence is collision except at the gate opening.
+- **Contents:**
+  - leaf-litter and moss ground (woodland_tiles 0-9)
+  - a round oak (back-left) and a small pine (back-right)
+  - a stone-rimmed pond (water spot, x 34-57 y 26-41)
+  - a mossy rock, mushrooms, ferns and a short log
+  - a bowl of berries by the gate (feeding spot)
+
+| File | Contents | Use |
+|---|---|---|
+| `habitat_woodland.png` | Full composite (ground + objects) | Quick placement. |
+| `habitat_woodland_ground.png` | Opaque ground: floor, moss, pond | **More useful in-game.** Draw it below actors. |
+| `habitat_woodland_objects.png` | Transparent: fence, trees, rocks, log, props | Draw above the ground. Y-sort it (or split at y 40) so monsters can walk behind the trees. |
+
+- Size note: Cody's placeholder habitat (feature/slice4-nursery farm.tscn) is bigger, with an area
+  of 144x48 inside a 176x80 pen. For plots larger than 4x4, use woodland_tiles ground with the
+  pasture or farm fence autotiles, or tile/stretch this plot's ground. Never scale the sprite.
+
+## assets/sprites/barn_stages.png (400x80, 80x80 frames, 5 columns x 1 row)
+**Five frames, not four.** The GDD says the barn "starts with 20 stalls and can be upgraded
+four times, for a maximum of 100 monsters". barn.tres also says capacity 20, step 20, max 4.
+That makes 5 visual states, so **frame index = PlayerState.barn_upgrades (0-4)**. The GDD gives
+no upgrade names, footprint or costs (costs are still open), so the names below are only
+descriptive.
+
+| Frame | barn_upgrades | Stalls | Look | Drawn x | Top y |
+|---|---|---|---|---|---|
+| 0 | 0 | 20 | Old shed-barn: faded red, patched planks, plank door with Z brace, wood shingles | 16-63 | 28 |
+| 1 | 1 | 40 | Repainted red, white corner boards and fascia, white-X double doors, lantern | 12-67 | 20 |
+| 2 | 2 | 60 | + hay loft door in the gable, + lean-to wing on the left (window) | 1-67 | 20 |
+| 3 | 3 | 80 | Bigger body, slate roof, stone foundation, two windows, hay hoist, bigger loft | 0-71 | 12 |
+| 4 | 4 | 100 | + silo on the right, rooster weathervane, flower boxes, fresh paint highlights | 0-79 | 7 |
+
+- **Anchor:** bottom-centre (40, 80). Every frame stands on y = 79, so stages swap in place.
+- **Door:**
+  - It is always centred on x = 40 with its sill on y = 79.
+  - Frame 0 door rect: (34, 66, 12x14). Frames 1-4: (32, 62, 16x18).
+  - The entrance cell is tile column 2 of the bottom tile row (pixels 32-47 x 64-79). The
+    player enters from the cell below it.
+- **Suggested collision:**
+  - Use the bottom 2 tile rows (y 48-79) across the walls of each frame:
+    - frame 0: cells 1-3
+    - frame 1: cells 1-3
+    - frame 2: cells 0-3
+    - frames 3-4: cells 0-4
+  - Leave the door cell as the trigger.
+  - The roof above y 48 is drawn over the ground behind it (draw the barn y-sorted, or above actors there).
+- Cody's placeholder barn (feature/slice4-nursery) is a 64x72 area at (280,24) with the gate
+  at (32,84). The 80x80 frame fits it with its bottom-centre at (32, 72) + 8 px of overhang
+  on each side.
 
 ## Coming later
 - Starter monsters default to **32x32** frames and follow the Cinderkin sheet layout

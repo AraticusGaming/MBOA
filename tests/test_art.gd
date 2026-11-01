@@ -16,6 +16,13 @@ const WOODLAND_ART := {
 }
 ## Slice 3 Woodland creatures: 256x128 sheets (Cinderkin layout) + 64x64 portraits.
 const WOODLAND_CREATURES := ["moss_bun", "blue_jay", "bramble_cub"]
+const BUILDING_ART := {
+	"res://assets/tilesets/pasture_tiles.png": Vector2i(128, 48),
+	"res://assets/sprites/habitat_woodland.png": Vector2i(64, 64),
+	"res://assets/sprites/habitat_woodland_ground.png": Vector2i(64, 64),
+	"res://assets/sprites/habitat_woodland_objects.png": Vector2i(64, 64),
+	"res://assets/sprites/barn_stages.png": Vector2i(400, 80),
+}
 
 
 func _run_tests() -> void:
@@ -25,6 +32,7 @@ func _run_tests() -> void:
 	_test_farm_tiles()
 	_test_woodland_art()
 	_test_woodland_creatures()
+	_test_buildings()
 	await _test_player_animation()
 
 
@@ -78,6 +86,56 @@ func _alpha_binary(img: Image) -> bool:
 			if a != 0 and a != 255:
 				return false
 	return true
+
+
+func _img(path: String) -> Image:
+	var tex := load(path) as Texture2D
+	if tex == null:
+		return null
+	var img := tex.get_image()
+	if img.is_compressed():
+		img.decompress()
+	return img
+
+
+func _test_buildings() -> void:
+	for path in BUILDING_ART:
+		var img := _img(path)
+		check(img != null, "%s loads" % path)
+		if img == null:
+			continue
+		check_eq(Vector2i(img.get_size()), BUILDING_ART[path], "%s size" % path.get_file())
+		check(_alpha_binary(img), "%s alpha is only 0 or 255" % path.get_file())
+	var past := _img("res://assets/tilesets/pasture_tiles.png")
+	if past != null:
+		var empty := 0
+		for i in 23:  # 0-15 fence mask tiles, 16-19 gates, 20-22 props
+			if past.get_region(Rect2i((i % 8) * 16, (i / 8) * 16, 16, 16)).get_used_rect().size == Vector2i.ZERO:
+				empty += 1
+		check_eq(empty, 0, "pasture tiles 0-22 all drawn")
+		# Rails reach the tile edge exactly where the mask says (E bit -> x=15 opaque on rail row 3).
+		var edges_ok := true
+		for m in 16:
+			var t := past.get_region(Rect2i((m % 8) * 16, (m / 8) * 16, 16, 16))
+			edges_ok = edges_ok and (t.get_pixel(15, 3).a8 > 0) == bool(m & 2)
+			edges_ok = edges_ok and (t.get_pixel(0, 3).a8 > 0) == bool(m & 8)
+			edges_ok = edges_ok and (t.get_pixel(7, 15).a8 > 0) == bool(m & 4)
+		check(edges_ok, "pasture fence autotile edges follow the N=1,E=2,S=4,W=8 mask")
+	var ground := _img("res://assets/sprites/habitat_woodland_ground.png")
+	if ground != null:
+		check(ground.detect_alpha() == Image.ALPHA_NONE, "habitat ground layer is fully opaque")
+	var hab := _img("res://assets/sprites/habitat_woodland.png")
+	if hab != null:
+		# gate opening: bottom-centre x 24-39 on the last row is ground, not fence
+		check(hab.get_pixel(31, 63) == ground.get_pixel(31, 63), "habitat gate opening is clear")
+	var barn := _img("res://assets/sprites/barn_stages.png")
+	if barn != null:
+		var grounded := true
+		for i in 5:  # frame = barn_upgrades (0-4); bottom-centre anchor (40, 80)
+			var r := barn.get_region(Rect2i(i * 80, 0, 80, 80)).get_used_rect()
+			grounded = grounded and r.size != Vector2i.ZERO and r.end.y == 80
+			grounded = grounded and barn.get_pixel(i * 80 + 40, 79).a8 == 255  # door sill
+		check(grounded, "barn: 5 stages drawn, standing on the bottom row with the door at x=40")
 
 
 func _test_woodland_creatures() -> void:
