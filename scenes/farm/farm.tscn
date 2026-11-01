@@ -1,4 +1,4 @@
-[gd_scene load_steps=23 format=3]
+[gd_scene load_steps=24 format=3]
 
 [ext_resource type="Script" path="res://scripts/farm/farm_grid.gd" id="1_grid"]
 [ext_resource type="Resource" path="res://resources/crops/placeholder_crop.tres" id="2_crop"]
@@ -25,6 +25,7 @@
 [ext_resource type="Script" path="res://scripts/farm/farm_decor.gd" id="23_decor"]
 
 [ext_resource type="PackedScene" path="res://scenes/world/shop_counter.tscn" id="19_counter"]
+[ext_resource type="PackedScene" path="res://scenes/world/monster_pen.tscn" id="24_pen"]
 
 [node name="Farm" type="Node2D"]
 
@@ -36,9 +37,10 @@ script = ExtResource("8_ground")
 tile_set = ExtResource("6_tiles")
 script = ExtResource("23_decor")
 tile_mapping = ExtResource("7_map")
-fence_rects = Array[Rect2i]([Rect2i(13, 8, 14, 10)])
-fence_gaps = Array[Vector2i]([Vector2i(13, 12)])
-path_rects = Array[Rect2i]([Rect2i(6, 8, 1, 8), Rect2i(7, 12, 7, 1), Rect2i(19, 7, 15, 1), Rect2i(19, 8, 2, 1)])
+fence_rects = Array[Rect2i]([Rect2i(13, 8, 14, 10), Rect2i(28, 9, 11, 5), Rect2i(28, 15, 11, 6)])
+fence_gaps = Array[Vector2i]([Vector2i(13, 12), Vector2i(30, 9), Vector2i(28, 17)])
+path_rects = Array[Rect2i]([Rect2i(6, 8, 1, 8), Rect2i(7, 12, 7, 1), Rect2i(19, 7, 15, 1), Rect2i(19, 8, 2, 1), Rect2i(27, 8, 1, 10)])
+path_cells = Array[Vector2i]([Vector2i(30, 8), Vector2i(19, 6)])
 
 [node name="FarmGrid" type="Node2D" parent="."]
 position = Vector2(224, 144)
@@ -75,6 +77,24 @@ position = Vector2(540, 88)
 
 [node name="AssessmentDoor" parent="." instance=ExtResource("22_door")]
 position = Vector2(96, 270)
+
+[node name="Habitat" parent="." instance=ExtResource("24_pen")]
+position = Vector2(448, 144)
+kind = 1
+area = Rect2(16, 16, 144, 48)
+gate = Vector2(40, 4)
+
+[node name="Pasture" parent="." instance=ExtResource("24_pen")]
+position = Vector2(448, 240)
+area = Rect2(16, 16, 144, 64)
+gate = Vector2(4, 40)
+gate_size = Vector2(28, 24)
+
+[node name="Barn" parent="." instance=ExtResource("24_pen")]
+position = Vector2(280, 24)
+kind = 2
+area = Rect2(0, 0, 64, 72)
+gate = Vector2(32, 84)
 
 [node name="Player" parent="." instance=ExtResource("3_player")]
 position = Vector2(320, 128)
