@@ -13,8 +13,10 @@ extends Node2D
 ## Trees (TreeData) advance through seed -> seedling -> sapling -> grown.
 ##
 ## Tools (ToolData, one tile each): Pulaski hits a tree on the cell or tills
-## empty soil; watering can waters; seeds plant. Sickle and pickaxe have no
-## target yet (GDD does not say what they act on) and report failure.
+## empty soil; watering can waters; seeds plant. Not GDD, placeholder (Ledan
+## ruling): the sickle clears grass and weeds, the pickaxe breaks rocks
+## (ObstacleData, resources/obstacles/*.tres). Cleared trees and obstacles
+## report their drops through `items_dropped` (wood, stone).
 
 signal plot_changed(cell: Vector2i)
 signal harvested(crop_id: StringName, cell: Vector2i)
@@ -25,8 +27,14 @@ signal tree_hit(cell: Vector2i, stage: int, hits: int)
 ## A grown tree came down and left a stump.
 signal tree_felled(cell: Vector2i, tree_id: StringName)
 ## A tree (seed/seedling dug out, sapling cut, or stump cleared) left the cell.
-## Drops (wood etc.) are not designed yet; listen here when they are.
 signal tree_removed(cell: Vector2i, tree_id: StringName, from_stage: int)
+## A sickle/pickaxe hit landed on an obstacle (hits taken so far).
+signal obstacle_hit(cell: Vector2i, obstacle_id: StringName, hits: int)
+## An obstacle was cleared from the cell.
+signal obstacle_cleared(cell: Vector2i, obstacle_id: StringName)
+## Items produced on `cell` (wood from trees, stone from rocks...). The player
+## puts them in the inventory.
+signal items_dropped(cell: Vector2i, item_id: StringName, amount: int)
 
 ## Grid size in cells. PLACEHOLDER.
 @export var grid_size: Vector2i = Vector2i(12, 8)
@@ -46,6 +54,11 @@ signal tree_removed(cell: Vector2i, tree_id: StringName, from_stage: int)
 ## "seedling", "sapling", "grown", "stump"); uses the first entry of `trees`.
 ## Loading a save replaces them.
 @export var starting_trees: Dictionary = {}
+## Obstacle types known to this grid (resources/obstacles/*.tres).
+@export var obstacles: Array[ObstacleData] = []
+## Obstacles placed on a new farm: cell (Vector2i) -> obstacle id. Placeholder
+## layout. Loading a save replaces them.
+@export var starting_obstacles: Dictionary = {}
 
 @export_group("Art")
 ## Farm TileSet (resources/farm_tileset.tres). null = placeholder rectangles.
@@ -72,6 +85,7 @@ var soil_layer: TileMapLayer
 
 var _crop_index: Dictionary = {}
 var _tree_index: Dictionary = {}
+var _obstacle_index: Dictionary = {}
 var _starting_trees_placed: bool = false
 
 
@@ -115,6 +129,12 @@ func get_tree_data(tree_id: StringName) -> TreeData:
 	if _tree_index.size() != trees.size():
 		_rebuild_tree_index()
 	return _tree_index.get(tree_id)
+
+
+func get_obstacle_data(obstacle_id: StringName) -> ObstacleData:
+	if _obstacle_index.size() != obstacles.size():
+		_rebuild_obstacle_index()
+	return _obstacle_index.get(obstacle_id)
 
 
 ## Tree on `cell`, or null.
@@ -173,21 +193,24 @@ func use_tool(cell: Vector2i, tool: ToolData) -> bool:
 		return false
 	match tool.kind:
 		ToolData.Kind.PULASKI:
+			if get_plot(cell).has_obstacle():
+				action_performed.emit(cell, &"till", false)
+				return false
 			return hit_tree(cell) if get_plot(cell).has_tree() else till(cell)
 		ToolData.Kind.WATERING_CAN:
 			return water(cell)
 		ToolData.Kind.SEEDS:
 			return plant(cell, _get_seed_id())
 		ToolData.Kind.SICKLE:
-			action_performed.emit(cell, &"sickle", false)  # target not in GDD yet
+			return hit_obstacle(cell, tool, &"sickle")
 		ToolData.Kind.PICKAXE:
-			action_performed.emit(cell, &"pickaxe", false)  # target not in GDD yet
+			return hit_obstacle(cell, tool, &"pickaxe")
 	return false
 
 
 func till(cell: Vector2i) -> bool:
 	var plot := get_plot(cell)
-	var ok := plot != null and plot.state == FarmPlot.State.EMPTY and not plot.has_tree()
+	var ok := plot != null and plot.state == FarmPlot.State.EMPTY and not plot.is_blocked()
 	if ok:
 		plot.state = FarmPlot.State.TILLED
 		_changed(cell)
@@ -239,11 +262,44 @@ func harvest(cell: Vector2i) -> StringName:
 ## Puts a tree on an empty, untilled cell. Returns false if the cell is taken.
 func place_tree(cell: Vector2i, tree_id: StringName, stage: int = TreeData.Stage.SEED) -> bool:
 	var plot := get_plot(cell)
-	if plot == null or plot.state != FarmPlot.State.EMPTY or plot.has_tree() \
+	if plot == null or plot.state != FarmPlot.State.EMPTY or plot.is_blocked() \
 			or get_tree_data(tree_id) == null:
 		return false
 	plot.tree = FarmTree.create(tree_id, stage)
 	_changed(cell)
+	return true
+
+
+## Puts an obstacle on an empty, untilled, unblocked cell.
+func place_obstacle(cell: Vector2i, obstacle_id: StringName) -> bool:
+	var plot := get_plot(cell)
+	if plot == null or plot.state != FarmPlot.State.EMPTY or plot.is_blocked() \
+			or get_obstacle_data(obstacle_id) == null:
+		return false
+	plot.obstacle_id = obstacle_id
+	plot.obstacle_hits = 0
+	_changed(cell)
+	return true
+
+
+## One sickle/pickaxe hit on the obstacle at `cell`. Only the obstacle's own
+## tool works (placeholder ruling). Returns true if a hit landed.
+func hit_obstacle(cell: Vector2i, tool: ToolData, action: StringName = &"clear") -> bool:
+	var plot := get_plot(cell)
+	var data := get_obstacle_data(plot.obstacle_id) if plot and plot.has_obstacle() else null
+	if data == null or not data.is_cleared_by(tool):
+		action_performed.emit(cell, action, false)
+		return false
+	plot.obstacle_hits += 1
+	obstacle_hit.emit(cell, data.id, plot.obstacle_hits)
+	if plot.obstacle_hits >= data.hits:
+		plot.obstacle_id = &""
+		plot.obstacle_hits = 0
+		obstacle_cleared.emit(cell, data.id)
+		if data.drop_item_id != &"" and data.drop_amount > 0:
+			items_dropped.emit(cell, data.drop_item_id, data.drop_amount)
+	_changed(cell)
+	action_performed.emit(cell, action, true)
 	return true
 
 
@@ -269,6 +325,9 @@ func hit_tree(cell: Vector2i) -> bool:
 		else:
 			plot.tree = null
 			tree_removed.emit(cell, tree.tree_id, stage)
+		var wood := data.get_drop_for_stage(stage)
+		if wood > 0 and data.drop_item_id != &"":
+			items_dropped.emit(cell, data.drop_item_id, wood)
 	_changed(cell)
 	var is_dig := stage == TreeData.Stage.SEED or stage == TreeData.Stage.SEEDLING
 	action_performed.emit(cell, &"dig_out" if is_dig else &"chop", true)
@@ -349,6 +408,8 @@ func _draw() -> void:
 				_draw_crop(plot, rect)
 			elif plot.has_tree():
 				_draw_tree(plot.tree, rect)
+			if plot.has_obstacle():
+				_draw_obstacle(plot, rect)
 	if is_in_bounds(highlight_cell):
 		var hr := Rect2(Vector2(highlight_cell) * cs, Vector2(cs, cs)).grow(-0.5)
 		draw_rect(hr, color_highlight, false, 1.0)
@@ -400,6 +461,29 @@ func _draw_tree(tree: FarmTree, rect: Rect2) -> void:
 			draw_rect(Rect2(c.x - 4, bottom - 7, 8, 1), data.color_trunk.lightened(0.3))
 
 
+## Placeholder obstacle drawing (no art yet).
+func _draw_obstacle(plot: FarmPlot, rect: Rect2) -> void:
+	var data := get_obstacle_data(plot.obstacle_id)
+	if data == null:
+		return
+	var c := rect.get_center()
+	var bottom := rect.end.y
+	match data.look:
+		ObstacleData.Look.GRASS:
+			for i in 4:
+				draw_rect(Rect2(rect.position.x + 2 + i * 3.5, bottom - 7 - (i % 2) * 2, 2, 5 + (i % 2) * 2), data.color)
+		ObstacleData.Look.WEED:
+			draw_rect(Rect2(c.x - 0.5, bottom - 10, 1, 8), data.color)
+			draw_rect(Rect2(c.x - 5, bottom - 9, 4, 3), data.color)
+			draw_rect(Rect2(c.x + 1, bottom - 11, 4, 3), data.color)
+			draw_rect(Rect2(c.x - 1, bottom - 13, 2, 2), Color(0.85, 0.75, 0.2))
+		ObstacleData.Look.ROCK:
+			var r := Rect2(c.x - 5, bottom - 9, 10, 7)
+			draw_rect(r, data.color)
+			draw_rect(Rect2(r.position.x + 1, r.position.y, 6, 2), data.color.lightened(0.3))
+			draw_rect(r, data.color.darkened(0.4), false, 1.0)
+
+
 # --- Internals --------------------------------------------------------------
 
 func _build_plots() -> void:
@@ -422,10 +506,24 @@ func _rebuild_tree_index() -> void:
 			_tree_index[t.id] = t
 
 
+func _rebuild_obstacle_index() -> void:
+	_obstacle_index.clear()
+	for o in obstacles:
+		if o != null:
+			_obstacle_index[o.id] = o
+
+
+## Places starting_trees and starting_obstacles once on a new farm (a loaded
+## save sets _starting_trees_placed and decides instead).
 func _place_starting_trees() -> void:
-	if _starting_trees_placed or trees.is_empty() or trees[0] == null:
+	if _starting_trees_placed:
 		return
 	_starting_trees_placed = true
+	for cell in starting_obstacles:
+		if cell is Vector2i:
+			place_obstacle(cell, StringName(starting_obstacles[cell]))
+	if trees.is_empty() or trees[0] == null:
+		return
 	for cell in starting_trees:
 		var stage_value = starting_trees[cell]
 		var stage := TreeData.stage_from_name(stage_value) if stage_value is String \

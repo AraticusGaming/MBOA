@@ -1,0 +1,12 @@
+[gd_resource type="Resource" script_class="ObstacleData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/farm/obstacle_data.gd" id="1_obs"]
+
+[resource]
+script = ExtResource("1_obs")
+id = &"weed"
+display_name = "Weeds (placeholder)"
+tool_kind = 1
+hits = 1
+look = 1
+color = Color(0.25, 0.5, 0.18, 1)

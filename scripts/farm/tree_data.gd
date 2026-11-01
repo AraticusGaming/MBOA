@@ -25,8 +25,20 @@ const STAGE_NAMES := ["seed", "seedling", "sapling", "grown", "stump"]
 ## dug out" but not how many digs or with which tool (assumed: Pulaski, the hoe).
 @export var dig_out_hits: int = 1
 ## Days spent as seed, seedling and sapling before the next stage.
-## PLACEHOLDER: tree growth timing is not in the GDD. 0 = never advances.
+## Not GDD, placeholder (Ledan ruling: placeholder growth times as data).
+## 0 = never advances.
 @export var stage_days: PackedInt32Array = PackedInt32Array([7, 7, 7])
+
+## Item dropped by cutting trees. Not GDD, placeholder (Ledan ruling: trees
+## drop wood); the amounts below are placeholders too. Seeds and seedlings
+## that are dug out drop nothing.
+@export var drop_item_id: StringName = &"wood"
+## Wood from cutting down a sapling.
+@export_range(0, 99) var sapling_wood: int = 1
+## Wood when a grown tree falls (6th swing).
+@export_range(0, 99) var fell_wood: int = 8
+## Wood from clearing the stump.
+@export_range(0, 99) var stump_wood: int = 2
 
 @export_group("Placeholder colors")
 ## No tree art yet: trees are drawn as rectangles in these colors.
@@ -57,3 +69,15 @@ func get_days_for_stage(stage: int) -> int:
 
 static func stage_from_name(stage_name: String) -> int:
 	return STAGE_NAMES.find(stage_name.to_lower())
+
+
+## Wood dropped when the tree in `stage` is cleared (or felled, for GROWN).
+func get_drop_for_stage(stage: int) -> int:
+	match stage:
+		Stage.SAPLING:
+			return sapling_wood
+		Stage.GROWN:
+			return fell_wood
+		Stage.STUMP:
+			return stump_wood
+	return 0

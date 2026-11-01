@@ -18,3 +18,15 @@ Rulings from Ledan (Stardew-style), awaiting the user's confirmation, are marked
 | Health outside battle **(Ledan)** | stub (no effect) | `PlayerState.damage()/heal()` |
 | Pass-out bond drop **(Ledan)** | 0 (inactive) | `resources/pass_out_config.tres` `party_bond_drop` |
 | Pass-out 10% loss is money only, not items **(Ledan)** | coins only | `PlayerState.apply_sleep()` |
+
+## Farm clearing and trees
+| Item | Value | Where |
+|------|-------|-------|
+| Sickle clears grass and weeds **(Ledan)** | 1 hit each | `resources/obstacles/grass.tres`, `weed.tres` |
+| Pickaxe breaks rocks **(Ledan)** | 2 hits, drops 1 stone | `resources/obstacles/rock.tres` |
+| Pulaski can't till a cell with an obstacle; only the obstacle's own tool works | rule | `FarmGrid.use_tool()` / `hit_obstacle()` |
+| Starting grass/weed/rock layout | 9 cells | `scenes/farm/farm.tscn` `starting_obstacles` |
+| Trees drop wood **(Ledan)** | sapling 1, felled 8, stump 2; dug-out seed/seedling 0 | `resources/trees/placeholder_tree.tres` |
+| Tree growth times **(Ledan: data placeholders)** | 7 days per stage (seed, seedling, sapling) | `placeholder_tree.tres` `stage_days` |
+| Digging out a seed/seedling | 1 Pulaski hit | `placeholder_tree.tres` `dig_out_hits` |
+| Stone item | dropped by rocks | `resources/obstacles/rock.tres` `drop_item_id` |

@@ -1,4 +1,4 @@
-[gd_scene load_steps=11 format=3]
+[gd_scene load_steps=15 format=3]
 
 [ext_resource type="Script" path="res://scripts/farm/farm_grid.gd" id="1_grid"]
 [ext_resource type="Resource" path="res://resources/crops/placeholder_crop.tres" id="2_crop"]
@@ -10,6 +10,11 @@
 [ext_resource type="Script" path="res://scripts/farm/ground_layer.gd" id="8_ground"]
 [ext_resource type="Resource" path="res://resources/trees/placeholder_tree.tres" id="9_tree"]
 [ext_resource type="Script" path="res://scripts/farm/tree_data.gd" id="10_treedata"]
+
+[ext_resource type="Script" path="res://scripts/farm/obstacle_data.gd" id="11_obsdata"]
+[ext_resource type="Resource" path="res://resources/obstacles/grass.tres" id="12_grass"]
+[ext_resource type="Resource" path="res://resources/obstacles/weed.tres" id="13_weed"]
+[ext_resource type="Resource" path="res://resources/obstacles/rock.tres" id="14_rock"]
 
 [node name="Farm" type="Node2D"]
 
@@ -30,6 +35,18 @@ Vector2i(11, 2): "grown",
 Vector2i(10, 4): "sapling",
 Vector2i(11, 6): "seedling",
 Vector2i(9, 7): "seed"
+}
+obstacles = Array[ExtResource("11_obsdata")]([ExtResource("12_grass"), ExtResource("13_weed"), ExtResource("14_rock")])
+starting_obstacles = {
+Vector2i(0, 6): "grass",
+Vector2i(1, 6): "grass",
+Vector2i(0, 7): "grass",
+Vector2i(2, 7): "weed",
+Vector2i(4, 6): "weed",
+Vector2i(6, 7): "rock",
+Vector2i(7, 6): "rock",
+Vector2i(10, 0): "grass",
+Vector2i(8, 3): "weed"
 }
 
 [node name="Bed" parent="." instance=ExtResource("5_bed")]

@@ -11,3 +11,7 @@ fell_hits = 6
 stump_hits = 4
 dig_out_hits = 1
 stage_days = PackedInt32Array(7, 7, 7)
+drop_item_id = &"wood"
+sapling_wood = 1
+fell_wood = 8
+stump_wood = 2

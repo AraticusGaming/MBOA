@@ -31,6 +31,7 @@ func _run_tests() -> void:
 	_test_crop_data(crop)
 	_test_tool_data()
 	_test_trees()
+	_test_obstacles()
 
 
 func _test_full_cycle(crop: CropData) -> void:
@@ -166,8 +167,8 @@ func _test_tool_data() -> void:
 		and SEEDS.stamina_cost == 0.0, "seeds are an item, not a tool")
 	var clock := make_clock()
 	var grid := _make_grid(clock)
-	check(not grid.use_tool(Vector2i(0, 0), SICKLE), "sickle: no target defined yet")
-	check(not grid.use_tool(Vector2i(0, 0), PICKAXE), "pickaxe: no target defined yet")
+	check(not grid.use_tool(Vector2i(0, 0), SICKLE), "sickle: nothing to clear on empty soil")
+	check(not grid.use_tool(Vector2i(0, 0), PICKAXE), "pickaxe: nothing to break on empty soil")
 	check(grid.use_tool(Vector2i(0, 0), PULASKI), "Pulaski tills (hoe half)")
 	check_eq(grid.get_plot(Vector2i(1, 0)).state, FarmPlot.State.EMPTY, "basic tool affects 1 tile only")
 	grid.free()
@@ -185,6 +186,9 @@ func _test_trees() -> void:
 	var removed: Array = []
 	grid.tree_felled.connect(func(c, _id): felled.append(c))
 	grid.tree_removed.connect(func(c, _id, st): removed.append([c, st]))
+	var wood := {"n": 0}
+	grid.items_dropped.connect(func(_c, id, n): if id == &"wood": wood.n += n)
+	check(data.drop_item_id == &"wood", "trees drop wood (placeholder ruling)")
 	# Sapling: 3 hits.
 	var c := Vector2i(1, 1)
 	check(grid.place_tree(c, data.id, TreeData.Stage.SAPLING), "place sapling")
@@ -197,6 +201,8 @@ func _test_trees() -> void:
 	check(grid.use_tool(c, PULASKI), "3rd hit lands")
 	check(grid.get_farm_tree(c) == null, "sapling cut after 3 hits")
 	check_eq(removed, [[c, TreeData.Stage.SAPLING]], "tree_removed(sapling)")
+	check_eq(wood.n, data.sapling_wood, "sapling drops sapling_wood")
+	wood.n = 0
 	check(grid.use_tool(c, PULASKI) and grid.get_plot(c).state == FarmPlot.State.TILLED,
 		"cleared cell can be tilled")
 	# Grown: 6 to fell, 4 for the stump = 10.
@@ -212,12 +218,15 @@ func _test_trees() -> void:
 			check_eq(grid.get_farm_tree(g).stage, TreeData.Stage.STUMP, "falls on swing 6 -> stump")
 	check_eq(swings, 10, "grown tree fully cleared in 10 swings")
 	check_eq(felled, [g], "tree_felled once")
+	check_eq(wood.n, data.fell_wood + data.stump_wood, "grown tree drops fell + stump wood")
+	wood.n = 0
 	# Seed and seedling dig out.
 	for st in [TreeData.Stage.SEED, TreeData.Stage.SEEDLING]:
 		var d := Vector2i(6 + st, 0)
 		grid.place_tree(d, data.id, st)
 		check(grid.use_tool(d, PULASKI) and grid.get_farm_tree(d) == null,
 			"%s dug out" % TreeData.STAGE_NAMES[st])
+	check_eq(wood.n, 0, "dug-out seeds/seedlings drop nothing")
 	# Other tools don't affect trees.
 	var o := Vector2i(0, 5)
 	grid.place_tree(o, data.id, TreeData.Stage.SAPLING)
@@ -258,4 +267,59 @@ func _test_trees() -> void:
 	grid.free()
 	grid2.free()
 	grid3.free()
+	clock.free()
+
+
+## Placeholder ruling: sickle clears grass/weeds, pickaxe breaks rocks.
+func _test_obstacles() -> void:
+	var grass := load("res://resources/obstacles/grass.tres") as ObstacleData
+	var weed := load("res://resources/obstacles/weed.tres") as ObstacleData
+	var rock := load("res://resources/obstacles/rock.tres") as ObstacleData
+	check(grass != null and weed != null and rock != null, "obstacle .tres load")
+	check(grass.tool_kind == ToolData.Kind.SICKLE and weed.tool_kind == ToolData.Kind.SICKLE,
+		"sickle clears grass and weeds")
+	check(rock.tool_kind == ToolData.Kind.PICKAXE, "pickaxe breaks rocks")
+	var clock := make_clock()
+	var grid := _make_grid(clock)
+	grid.obstacles = [grass, weed, rock]
+	var drops: Array = []
+	var cleared: Array = []
+	grid.items_dropped.connect(func(c, id, n): drops.append([c, id, n]))
+	grid.obstacle_cleared.connect(func(c, id): cleared.append([c, id]))
+	var g := Vector2i(0, 0)
+	var w := Vector2i(1, 0)
+	var r := Vector2i(2, 0)
+	check(grid.place_obstacle(g, &"grass") and grid.place_obstacle(w, &"weed")
+		and grid.place_obstacle(r, &"rock"), "place obstacles")
+	check(not grid.place_obstacle(g, &"rock"), "cell already blocked")
+	check(not grid.place_tree(g, grid.trees[0].id), "no tree on an obstacle")
+	check(not grid.till(g) and not grid.use_tool(g, PULASKI), "can't till grass")
+	check(not grid.use_tool(r, SICKLE), "sickle doesn't break rocks")
+	check(not grid.use_tool(g, PICKAXE), "pickaxe doesn't cut grass")
+	check(grid.use_tool(g, SICKLE) and not grid.get_plot(g).has_obstacle(), "sickle clears grass")
+	check(grid.use_tool(w, SICKLE) and not grid.get_plot(w).has_obstacle(), "sickle clears weeds")
+	for i in rock.hits - 1:
+		check(grid.use_tool(r, PICKAXE), "rock hit lands")
+	check(grid.get_plot(r).has_obstacle(), "rock stands until its last hit")
+	check(grid.use_tool(r, PICKAXE) and not grid.get_plot(r).has_obstacle(), "pickaxe breaks the rock")
+	check_eq(cleared, [[g, &"grass"], [w, &"weed"], [r, &"rock"]], "obstacle_cleared")
+	check_eq(drops, [[r, &"stone", rock.drop_amount]], "rock drops stone (placeholder)")
+	check(grid.use_tool(g, PULASKI), "cleared cell can be tilled")
+	# Save roundtrip of a damaged rock + starting_obstacles.
+	grid.place_obstacle(Vector2i(5, 5), &"rock")
+	grid.use_tool(Vector2i(5, 5), PICKAXE)
+	var saved := JSON.parse_string(JSON.stringify(grid.to_dict())) as Dictionary
+	var grid2 := FarmGrid.new()
+	grid2.obstacles = [grass, weed, rock]
+	grid2.starting_obstacles = {Vector2i(1, 1): "grass"}
+	grid2.clock = clock
+	root.add_child(grid2)
+	grid2._ready()
+	check(grid2.get_plot(Vector2i(1, 1)).obstacle_id == &"grass", "starting_obstacles placed")
+	grid2.from_dict(saved)
+	var p := grid2.get_plot(Vector2i(5, 5))
+	check(p.obstacle_id == &"rock" and p.obstacle_hits == 1, "obstacle state saves")
+	check(not grid2.get_plot(Vector2i(1, 1)).has_obstacle(), "the save replaces starting obstacles")
+	grid.free()
+	grid2.free()
 	clock.free()
