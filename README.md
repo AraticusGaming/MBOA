@@ -36,8 +36,12 @@ Milestone 1 (core loop skeleton):
       crop stage sprites (the bed and HUD are still placeholder shapes)
 
 Milestone 1.5 (align with the GDD):
-- [x] Pass-out per GDD: lose a percentage of carried Coins plus a fixed bond drop for the
-      party; wake up in bed (`resources/pass_out_config.tres`, both values 0 until decided)
+- [x] Clock per ruling (`docs/DECISIONS.md`): wake 6:00 AM, 30 days per season, 60 real
+      seconds per in-game hour (`resources/clock_config.tres`)
+- [x] Pass-out: lose 10% of carried Coins (ruling, no cap) plus a fixed bond drop for the
+      party (still open: 0, inactive until monsters exist); wake up in bed
+- [x] Stat letter bands for 1-20 stats (ruling: D 1-4, C 5-9, B 10-14, A 15-17, S 18-20):
+      `StatLetterBands` + `resources/stats/stat_letters_1_20.tres`, GDD overall-rank helper
 - [x] Removed the per-season "climate" hook (GDD climate = egg/pregnancy environment, M7)
 - [x] Health and stamina bars (100%); tool uses cost stamina; at 0 stamina no tools and
       slower movement; refill by sleeping, `eat()` and `rest_in_hot_spring()` (stubs)
@@ -48,8 +52,8 @@ Milestone 1.5 (align with the GDD):
       each morning, tested across days and seasons
 - [ ] Display options (Ledan to confirm; 640x360 with integer scaling unchanged)
 
-All numbers that the GDD does not fix (clock speed, wake hour, phase boundaries, days per
-season, crop and tree stage days, stamina costs, slowdowns, penalties...) are
+User rulings in `docs/DECISIONS.md` override the GDD. All numbers that neither fixes (phase
+boundaries, crop and tree stage days, stamina costs, slowdowns, penalties...) are
 **placeholders**. Tune them in the `.tres` files in `resources/` or the exported vars in the
 scenes, not in code. GDD-fixed values (four crop stages, tree hits 3 / 6 + 4, bars at 100%,
 1-tile basic tools) are used as written.
@@ -85,6 +89,8 @@ scenes, not in code. GDD-fixed values (four crop stages, tree hits 3 / 6 + 4, ba
   (`resources/tools/`), trees `TreeData` (`resources/trees/`). The farm's starting trees
   are `FarmGrid.starting_trees` in `scenes/farm/farm.tscn`.
 - The bed (`scripts/farm/bed.gd`) moves the player to its wake spot on every `day_started`.
+- Creatures (data only so far): `StatLetterBands` (`scripts/creatures/stat_letter_bands.gd`)
+  maps a stat value to its letter; one resource per stat range in `resources/stats/`.
 - UI: `scenes/ui/hud.tscn`; night tint is `DayNightTint` (CanvasModulate) in the main scene.
 
 ## Tests
@@ -94,7 +100,7 @@ tests/run_all.sh /path/to/godot          # imports, then runs every tests/test_*
 godot --headless --path . --script res://tests/test_clock.gd   # single suite
 ```
 Suites: `test_clock`, `test_farm` (plots, tools, trees), `test_sleep` (pass-out, bed),
-`test_energy` (health/stamina), `test_save` (SaveManager), `test_art`, `test_boot` (loads the
+`test_energy` (health/stamina), `test_save` (SaveManager), `test_stats` (stat letters), `test_art`, `test_boot` (loads the
 main scene).
 
 ## Art integration

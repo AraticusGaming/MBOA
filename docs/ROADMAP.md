@@ -13,8 +13,9 @@ Order follows the GDD's "Suggested build order" (steps 1-6), with breeding, vill
 - [x] 200 headless tests (`tests/run_all.sh`)
 
 ### Milestone 1.5: Align with the GDD (do next, small)
-- [ ] Clock config per ruling: wake 6:00 AM, 30 days per season, 60 real seconds per game hour. (Cody)
-- [ ] Pass-out per ruling: lose 10% of carried money (`gold_penalty_fraction = 0.1`, no cap) plus a fixed bonding drop for monsters with the player (value open, inactive until monsters exist); wakes in bed. Drop the invented `wake_hour_delay` and `energy_penalty_fraction`. (Cody)
+- [x] Clock config per ruling: wake 6:00 AM, 30 days per season, 60 real seconds per game hour. (Cody)
+- [x] Pass-out per ruling: lose 10% of carried money (`gold_penalty_fraction = 0.1`, no cap) plus a fixed bonding drop for monsters with the player (value open, inactive until monsters exist); wakes in bed. Drop the invented `wake_hour_delay` and `energy_penalty_fraction`. (Cody)
+- [x] Stat letters for 1-20 stats per ruling (D 1-4, C 5-9, B 10-14, A 15-17, S 18-20) as `resources/stats/stat_letters_1_20.tres` with a lookup, for the future monster resource. (Cody)
 - [x] Remove or rename the "climate" per-season hook. In the GDD, climate means managing the egg or pregnancy environment (Milestone 7), not weather or seasons. Whether seasons change anything beyond crops is an open question. (Cody)
 - [x] Energy: two bars, health and stamina, both 100%. Stamina drops per tool use; at 0 the player is slowed and cannot use tools. Refill by eating, sleeping, or a hot spring. Health outside battle is an open question, so stub it. (Cody)
 - [x] Tools per GDD: Pulaski (axe and hoe in one), sickle, pickaxe, watering can; 1 tile at base level. Tree clearing: four stages (seed, seedling, sapling, grown); seeds and seedlings dug out; sapling 3 Pulaski hits; grown tree 10 swings (6 to fell, 4 for the stump). (Cody)
