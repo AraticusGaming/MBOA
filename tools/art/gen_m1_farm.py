@@ -1,7 +1,7 @@
 """Milestone 1 farm art generator (procedural, pixel-level, reproducible).
 
 Outputs (relative to repo root):
-  assets/tilesets/farm_tiles.png   8-column grid of 16x16 tiles
+  assets/tilesets/farm_tiles.png   8-column grid of 16x16 tiles (built by gen_m1b_polish.py)
   assets/sprites/player_base.png   16x32 frames, 8 cols x 4 rows (down, left, right, up)
   assets/sprites/crop_basic.png    16x16 frames, 1 row (seed, stage 1, stage 2, harvest)
   tools/art/palette.png            palette swatch
@@ -580,8 +580,11 @@ def preview(outdir, outputs):
 
 
 def main():
+    # Since M1b the tileset (indices 0-12 unchanged in meaning, 3-5 redrawn, new tiles
+    # appended) is owned by gen_m1b_polish.py; reuse it so both generators agree.
+    import gen_m1b_polish
     outputs = {
-        "farm_tiles": build_tileset(),
+        "farm_tiles": gen_m1b_polish.build_tileset(),
         "player_base": build_player(),
         "crop_basic": build_crops(),
     }
