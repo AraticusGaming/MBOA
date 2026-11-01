@@ -27,10 +27,19 @@ func _initialize() -> void:
 		grid.plant(c, crop.id)
 		grid.get_plot(c).growth_days = x
 	grid.water(Vector2i(1, 1))
+	# Trees: farm.tscn starting_trees (grown, sapling, seedling, seed) plus a
+	# felled tree's stump (6 Pulaski swings on a grown tree).
+	grid.place_tree(Vector2i(7, 5), grid.trees[0].id, TreeData.Stage.GROWN)
+	for i in grid.trees[0].fell_hits:
+		grid.hit_tree(Vector2i(7, 5))
 	grid.queue_redraw()
+	# Some stamina spent so the HUD bar shows a partial fill.
+	var ps := root.get_node("PlayerState")
+	ps.spend_stamina(35.0)
 	var player := main.get_node("Farm/Player") as Player
 	player.global_position = grid.cell_to_world_center(Vector2i(5, 0)) + Vector2(0, 8)
 	player.facing = Vector2i.LEFT
+	player.select_tool_by_id(&"pulaski")
 	for i in 30:
 		await process_frame
 	var img := root.get_texture().get_image()
