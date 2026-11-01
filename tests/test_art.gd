@@ -27,7 +27,7 @@ func _test_tileset() -> void:
 	check(src != null and src.texture != null, "atlas source 0 has farm_tiles.png")
 	if src == null:
 		return
-	check_eq(src.texture.get_size(), Vector2(128, 32), "farm_tiles.png is 128x32")
+	check_eq(src.texture.get_size(), Vector2(128, 112), "farm_tiles.png is 128x112 (8 cols; M1b rows appended)")
 	check_eq(src.get_tiles_count(), 13, "13 tiles defined (ART_NOTES 0-12)")
 	var map := load(MAPPING) as FarmTileMapping
 	check(map != null, "tile mapping loads")
