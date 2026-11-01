@@ -14,6 +14,7 @@ modifier = &"fire"
 biomes = PackedInt32Array(1)
 wild_catchable = true
 favorite_food_id = &"wet_waxweed"
+preferred_food_type = &"plant"
 favorite_crops = PackedStringArray("wet_waxweed", "wet_waxweed", "wet_waxweed", "")
 stat_bands = ExtResource("2_bands")
 rank_variants = {"S": &"blue_flame"}

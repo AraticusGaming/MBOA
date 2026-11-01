@@ -1,0 +1,19 @@
+[gd_resource type="Resource" script_class="CareConfig" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/creatures/care_config.gd" id="1_care"]
+
+[resource]
+script = ExtResource("1_care")
+feed_bond_favorite = 6.0
+feed_bond_preferred = 3.0
+feed_bond_other = 1.0
+favorite_streak_bonus = 1.0
+favorite_streak_cap = 5
+bond_feeds_per_day = 2
+party_bond_per_day = 2.0
+barn_neglect_bond_drop = 3.0
+party_skips_barn_care = true
+angie_gift_enabled = true
+angie_treat_id = &"angie_treat"
+angie_treat_count = 20
+angie_seed_count = 45

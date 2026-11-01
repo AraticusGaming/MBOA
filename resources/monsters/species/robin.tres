@@ -12,6 +12,7 @@ modifier = &""
 biomes = PackedInt32Array(0)
 wild_catchable = true
 favorite_food_id = &"carrot"
+preferred_food_type = &"plant"
 favorite_crops = PackedStringArray("carrot", "tomato", "carrot", "")
 stat_bands = ExtResource("2_bands")
 rank_variants = {}

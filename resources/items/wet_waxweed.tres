@@ -12,5 +12,6 @@ buy_price = 0
 sell_price = 50
 max_stack = 99
 edible = false
+food_type = &"plant"
 color = Color(0.55, 0.6, 0.3, 1)
 icon = ExtResource("9_icon")

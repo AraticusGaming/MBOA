@@ -29,6 +29,9 @@ const BIOME_IDS: PackedStringArray = ["meadowlands", "woodland", "marsh", "lake_
 @export var wild_catchable: bool = true
 ## Item id of its favorite food (GDD: e.g. Rockback -> Snouter Roe).
 @export var favorite_food_id: StringName = &""
+## GDD: each monster has a preferred food type (ItemData.food_type).
+## PLACEHOLDER values.
+@export var preferred_food_type: StringName = &""
 ## GDD: a favorite crop for each season. Crop ids in GameClock.Season order
 ## (spring, summer, fall, winter); "" = none. PLACEHOLDER values.
 @export var favorite_crops: PackedStringArray = PackedStringArray(["", "", "", ""])

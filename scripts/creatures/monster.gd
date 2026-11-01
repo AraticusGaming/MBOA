@@ -30,8 +30,17 @@ var skills: Array = []
 var variant: StringName = &""
 ## Biome it was caught in (SpeciesData.Biome, -1 = bred/unknown).
 var origin_biome: int = -1
-## Where it lives: &"party", &"habitat", &"pasture", &"barn" (Slice 3).
+## Where it lives: &"pasture", &"barn" or a habitat id (HabitatData.id).
+## Party members keep their barn stall (PlayerState.party lists who is out).
 var home: StringName = &""
+## Daily care (reset by PlayerState.apply_daily_care at day end).
+var fed_today: bool = false
+var watered_today: bool = false
+var fed_favorite_today: bool = false
+## Feeds today that gave bond (CareConfig.bond_feeds_per_day).
+var bond_feeds_today: int = 0
+## Consecutive days it was fed its favorite food.
+var favorite_streak: int = 0
 
 var _species: SpeciesData
 
@@ -120,6 +129,11 @@ func to_dict() -> Dictionary:
 		"variant": String(variant),
 		"origin_biome": origin_biome,
 		"home": String(home),
+		"fed_today": fed_today,
+		"watered_today": watered_today,
+		"fed_favorite_today": fed_favorite_today,
+		"bond_feeds_today": bond_feeds_today,
+		"favorite_streak": favorite_streak,
 	}
 
 
@@ -139,6 +153,13 @@ static func from_dict(d: Dictionary) -> Monster:
 	m.variant = StringName(String(d.get("variant", "")))
 	m.origin_biome = int(d.get("origin_biome", -1))
 	m.home = StringName(String(d.get("home", "")))
+	if m.home == &"party":  # M2 saves: party members live in the barn now
+		m.home = &"barn"
+	m.fed_today = bool(d.get("fed_today", false))
+	m.watered_today = bool(d.get("watered_today", false))
+	m.fed_favorite_today = bool(d.get("fed_favorite_today", false))
+	m.bond_feeds_today = int(d.get("bond_feeds_today", 0))
+	m.favorite_streak = int(d.get("favorite_streak", 0))
 	return m
 
 

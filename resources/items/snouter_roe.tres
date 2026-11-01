@@ -11,4 +11,5 @@ buy_price = 0
 sell_price = 0
 max_stack = 99
 edible = false
+food_type = &"fish"
 color = Color(0.9, 0.55, 0.45, 1)

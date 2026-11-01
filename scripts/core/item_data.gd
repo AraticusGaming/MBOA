@@ -31,6 +31,17 @@ enum Kind { MATERIAL, SEED, CROP, FOOD }
 @export var color: Color = Color(0.8, 0.8, 0.8)
 ## 16x16 icon (ART: assets/sprites/item_<name>.png). null = colored square.
 @export var icon: Texture2D
+## Monster food type (crops and foods): matched against
+## SpeciesData.preferred_food_type when feeding (GDD: each monster has a
+## preferred food type). Types are NOT GDD, PLACEHOLDER: plant, fish, treat.
+@export var food_type: StringName = &""
+## GDD: Angie's special food always counts as a monster's favorite.
+@export var always_favorite: bool = false
+
+
+## Crops and foods can be fed to monsters.
+func is_feedable() -> bool:
+	return kind == Kind.CROP or kind == Kind.FOOD
 
 
 func is_seed() -> bool:

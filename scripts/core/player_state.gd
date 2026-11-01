@@ -14,15 +14,29 @@ signal stamina_changed(stamina: float, max_stamina: float)
 signal inventory_changed
 signal monsters_changed
 signal assessment_completed(monster: RefCounted)
+## A monster's home, party membership, bond or care flags changed.
+signal care_changed
+## End-of-day care results (see apply_daily_care).
+signal daily_care_applied(report: Dictionary)
 
 const MONSTER_CONFIG_PATH := "res://resources/monsters/monster_config.tres"
 const PASS_OUT_CONFIG_PATH := "res://resources/pass_out_config.tres"
 const ENERGY_CONFIG_PATH := "res://resources/energy_config.tres"
 const ECONOMY_CONFIG_PATH := "res://resources/economy_config.tres"
+const CARE_CONFIG_PATH := "res://resources/monsters/care_config.tres"
+const ITEM_CATALOG_PATH := "res://resources/items/item_catalog.tres"
+const HOME_PASTURE := &"pasture"
+const HOME_BARN := &"barn"
 
 var pass_out_config: PassOutConfig
 var energy_config: EnergyConfig
 var economy_config: EconomyConfig
+var care_config: CareConfig
+## PenData for the pasture and barn (resources/buildings/).
+var pasture_data: PenData
+var barn_data: PenData
+## Barn upgrades bought (GDD: up to four, 20 -> 100 stalls).
+var barn_upgrades: int = 0
 var health: float = 100.0
 var stamina: float = 100.0
 ## Coins the player is carrying (GDD currency). New games start with
@@ -39,8 +53,7 @@ var party: Array = []
 ## Farm's starting biome (SpeciesData.Biome), set by the first monster
 ## (GDD opening step 5); -1 before the Assessment.
 var farm_biome: int = -1
-## Habitats on the farm: [{id, biome, built}] (stub state; Slice 3 adds the
-## actual habitat areas).
+## Habitats on the farm: [{id, biome, built}].
 var habitats: Array = []
 ## True once the Assessment chose the first monster.
 var assessment_done: bool = false
@@ -54,6 +67,9 @@ func _init() -> void:
 	pass_out_config = GameClock._load_or_default(PASS_OUT_CONFIG_PATH, PassOutConfig) as PassOutConfig
 	energy_config = GameClock._load_or_default(ENERGY_CONFIG_PATH, EnergyConfig) as EnergyConfig
 	economy_config = GameClock._load_or_default(ECONOMY_CONFIG_PATH, EconomyConfig) as EconomyConfig
+	care_config = GameClock._load_or_default(CARE_CONFIG_PATH, CareConfig) as CareConfig
+	pasture_data = GameClock._load_or_default(CareConfig.PASTURE_PATH, PenData) as PenData
+	barn_data = GameClock._load_or_default(CareConfig.BARN_PATH, PenData) as PenData
 	health = energy_config.max_health
 	stamina = energy_config.max_stamina
 	inventory = Inventory.new(economy_config.inventory_slots)
@@ -204,7 +220,8 @@ func add_monster(m: RefCounted, to_party: bool = true) -> bool:
 	var joined := false
 	if to_party and not party.has(m) and party.size() < get_party_max():
 		party.append(m)
-		m.home = &"party"
+		if m.home == &"":
+			m.home = HOME_BARN
 		joined = true
 	monsters_changed.emit()
 	return joined
@@ -220,19 +237,23 @@ func get_monster(uid: String) -> RefCounted:
 ## GDD opening: the chosen Assessment monster becomes the player's first
 ## monster and decides the farm's starting biome; DECISIONS.md: that biome's
 ## habitat is already built. GDD: a wild-caught monster lives in its biome's
-## habitat until bonded, so it goes there unless `join_party` (party of 2
-## comes from the barn in Slice 3).
+## habitat (or the pasture) until bonded, so it goes there unless
+## `join_party` (AssessmentConfig.first_monster_joins_party, off). The first
+## monster also brings Angie's gift (CareConfig, the opening is skipped).
 func complete_assessment(m: RefCounted, join_party: bool = false) -> void:
 	if m == null:
 		return
 	var biome: int = m.origin_biome
+	var first := not assessment_done
 	if farm_biome < 0 and biome >= 0:
 		farm_biome = biome
 		build_habitat(biome)
-	add_monster(m, join_party)
+	if join_party:
+		add_monster(m, true)
 	if not party.has(m):
-		var hab := get_habitat(biome)
-		m.home = StringName(hab.id) if not hab.is_empty() else &"pasture"
+		add_wild_monster(m)
+	if first:
+		give_angie_gift(m)
 	assessment_done = true
 	assessment_completed.emit(m)
 
@@ -257,6 +278,302 @@ func get_habitat(biome: int) -> Dictionary:
 	return {}
 
 
+func get_habitat_by_id(id: StringName) -> Dictionary:
+	for h in habitats:
+		if StringName(h.id) == id:
+			return h
+	return {}
+
+
+# --- Homes, capacity, party (Slice 3) ---------------------------------------
+
+## Spots in `home` (pasture, barn or a built habitat id); 0 if unknown.
+func get_capacity(home: StringName) -> int:
+	if home == HOME_PASTURE:
+		return pasture_data.get_capacity()
+	if home == HOME_BARN:
+		return barn_data.get_capacity(barn_upgrades)
+	var h := get_habitat_by_id(home)
+	if h.is_empty() or not h.built:
+		return 0
+	var data = HabitatData.for_biome(int(h.biome))
+	return data.capacity if data else 12
+
+
+## Monsters whose home is `home` (party members included: they keep their stall).
+func get_residents(home: StringName) -> Array:
+	return monsters.filter(func(m): return m.home == home)
+
+
+func get_free_spots(home: StringName) -> int:
+	return maxi(get_capacity(home) - get_residents(home).size(), 0)
+
+
+func has_room(home: StringName) -> bool:
+	return get_free_spots(home) > 0
+
+
+## GDD: a wild-caught monster goes to its biome's habitat if it has a spot,
+## otherwise the pasture (max 6). Returns the home, or &"" if both are full
+## (nothing changes then).
+func get_wild_home(m: RefCounted) -> StringName:
+	var hab := get_habitat(m.origin_biome)
+	if not hab.is_empty() and hab.built and has_room(StringName(hab.id)):
+		return StringName(hab.id)
+	return HOME_PASTURE if has_room(HOME_PASTURE) else &""
+
+
+## Adds a wild-caught monster to the roster in its habitat or the pasture.
+## Returns false (and adds nothing) when there is no room.
+func add_wild_monster(m: RefCounted) -> bool:
+	var home := get_wild_home(m)
+	if home == &"":
+		return false
+	m.home = home
+	if not monsters.has(m):
+		monsters.append(m)
+	monsters_changed.emit()
+	care_changed.emit()
+	return true
+
+
+## Why `m` can't move to `home` ("" = it can). GDD: only bonded monsters (25%)
+## go to the barn; a habitat only takes monsters of its biome.
+func get_move_block(m: RefCounted, home: StringName) -> String:
+	if m == null or not monsters.has(m):
+		return "Not your monster"
+	if m.home == home:
+		return "Already there"
+	if home == HOME_BARN:
+		if not m.can_go_to_barn():
+			var mc := load(MONSTER_CONFIG_PATH) as MonsterConfig
+			return "Needs %d%% bond" % int(mc.barn_bond if mc else 25.0)
+	elif home != HOME_PASTURE:
+		var h := get_habitat_by_id(home)
+		if h.is_empty() or not h.built:
+			return "No such habitat"
+		var sp = m.get_species()
+		if sp == null or not sp.lives_in(int(h.biome)):
+			return "Wrong biome"
+	if not has_room(home):
+		return "%s is full" % get_home_name(home)
+	return ""
+
+
+func can_move(m: RefCounted, home: StringName) -> bool:
+	return get_move_block(m, home) == ""
+
+
+## Moves `m` to `home` if allowed. Leaving the barn also leaves the party
+## (GDD: the party comes from the barn).
+func move_monster(m: RefCounted, home: StringName) -> bool:
+	if not can_move(m, home):
+		return false
+	m.home = home
+	if home != HOME_BARN and party.has(m):
+		party.erase(m)
+	monsters_changed.emit()
+	care_changed.emit()
+	return true
+
+
+func move_to_barn(m: RefCounted) -> bool:
+	return move_monster(m, HOME_BARN)
+
+
+func get_home_name(home: StringName) -> String:
+	if home == HOME_PASTURE:
+		return pasture_data.display_name
+	if home == HOME_BARN:
+		return barn_data.display_name
+	var h := get_habitat_by_id(home)
+	if not h.is_empty():
+		var data = HabitatData.for_biome(int(h.biome))
+		if data:
+			return data.display_name
+	return String(home)
+
+
+## GDD: up to two barn monsters can be taken out at a time.
+func can_join_party(m: RefCounted) -> bool:
+	return m != null and monsters.has(m) and m.home == HOME_BARN and not party.has(m) \
+		and party.size() < get_party_max()
+
+
+func add_to_party(m: RefCounted) -> bool:
+	if not can_join_party(m):
+		return false
+	party.append(m)
+	monsters_changed.emit()
+	care_changed.emit()
+	return true
+
+
+func remove_from_party(m: RefCounted) -> bool:
+	if not party.has(m):
+		return false
+	party.erase(m)
+	monsters_changed.emit()
+	care_changed.emit()
+	return true
+
+
+## GDD: the barn can be upgraded four times (costs OPEN: upgrade_costs,
+## empty = free placeholder). Returns true if upgraded.
+func upgrade_barn() -> bool:
+	if barn_upgrades >= barn_data.max_upgrades:
+		return false
+	var cost := barn_data.get_upgrade_cost(barn_upgrades)
+	if cost > coins:
+		return false
+	if cost > 0:
+		add_coins(-cost)
+	barn_upgrades += 1
+	care_changed.emit()
+	return true
+
+
+# --- Feeding and daily care ---------------------------------------------------
+
+## Bond points feeding `item` to `m` would give (before the per-day limit).
+## GDD: the favorite food raises bonding more ("continuously": streak bonus);
+## each monster has a preferred food type. Numbers: CareConfig (placeholders).
+## `item` is an ItemData (untyped: naming ItemData here trips the engine's
+## "resources still in use at exit" quirk, see player.gd).
+func get_feed_bond(m: RefCounted, item: Resource) -> float:
+	if m == null or item == null or not item.is_feedable():
+		return 0.0
+	var cfg := care_config
+	if is_favorite_food(m, item):
+		return cfg.feed_bond_favorite + cfg.favorite_streak_bonus * mini(m.favorite_streak, cfg.favorite_streak_cap)
+	var sp = m.get_species()
+	if sp and sp.preferred_food_type != &"" and item.food_type == sp.preferred_food_type:
+		return cfg.feed_bond_preferred
+	return cfg.feed_bond_other
+
+
+func is_favorite_food(m: RefCounted, item: Resource) -> bool:
+	if item.always_favorite:
+		return true
+	var fav: StringName = m.favorite_food_id
+	if fav == &"":
+		var sp = m.get_species()
+		fav = sp.favorite_food_id if sp else &""
+	return fav != &"" and item.id == fav
+
+
+## Feeds one `item_id` from the inventory to `m`. Returns {ok, bond, reason}.
+## Counts as the barn's daily food; bond only for the first
+## CareConfig.bond_feeds_per_day feeds a day.
+func feed_monster(m: RefCounted, item_id: StringName) -> Dictionary:
+	var result := {"ok": false, "bond": 0.0, "reason": ""}
+	if m == null or not monsters.has(m):
+		result.reason = "Not your monster"
+		return result
+	var item = _items().get_item(item_id)
+	if item == null or not item.is_feedable():
+		result.reason = "Not food"
+		return result
+	if inventory.count(item_id) <= 0:
+		result.reason = "None left"
+		return result
+	inventory.remove(item_id, 1)
+	var gain := 0.0
+	if m.bond_feeds_today < care_config.bond_feeds_per_day:
+		gain = get_feed_bond(m, item)
+		m.bond_feeds_today += 1
+	var before: float = m.bond
+	m.add_bond(gain)
+	m.fed_today = true
+	if is_favorite_food(m, item):
+		m.fed_favorite_today = true
+	result.ok = true
+	result.bond = m.bond - before
+	care_changed.emit()
+	return result
+
+
+## GDD: barn monsters need water every day. Fills the barn troughs (every
+## barn monster is watered today). Placeholder: one free action.
+func water_barn() -> int:
+	var n := 0
+	for m in get_residents(HOME_BARN):
+		if not m.watered_today:
+			m.watered_today = true
+			n += 1
+	care_changed.emit()
+	return n
+
+
+## Barn monsters (not out with the party) still missing food or water today.
+func get_barn_needs() -> Dictionary:
+	var hungry := 0
+	var thirsty := 0
+	for m in get_residents(HOME_BARN):
+		if care_config.party_skips_barn_care and party.has(m):
+			continue
+		if not m.fed_today:
+			hungry += 1
+		if not m.watered_today:
+			thirsty += 1
+	return {"hungry": hungry, "thirsty": thirsty}
+
+
+## Day-end bond tick (GDD: party monsters gain passive bonding; barn monsters
+## need food and water every day). Updates the favorite-food streak and
+## resets the daily flags. Returns {party_gain, neglected, streaks}.
+func apply_daily_care() -> Dictionary:
+	var cfg := care_config
+	var report := {"party_gain": 0.0, "neglected": 0, "streaks": 0}
+	for m in monsters:
+		if party.has(m) and cfg.party_bond_per_day > 0.0:
+			m.add_bond(cfg.party_bond_per_day)
+			report.party_gain = cfg.party_bond_per_day
+		var cared_for: bool = m.fed_today and m.watered_today
+		var exempt: bool = cfg.party_skips_barn_care and party.has(m)
+		if m.home == HOME_BARN and not exempt and not cared_for:
+			m.add_bond(-maxf(cfg.barn_neglect_bond_drop, 0.0))
+			report.neglected += 1
+		m.favorite_streak = m.favorite_streak + 1 if m.fed_favorite_today else 0
+		if m.favorite_streak > 0:
+			report.streaks += 1
+		m.fed_today = false
+		m.watered_today = false
+		m.fed_favorite_today = false
+		m.bond_feeds_today = 0
+	care_changed.emit()
+	daily_care_applied.emit(report)
+	return report
+
+
+## GDD opening (skipped): Angie gives 20 always-favorite foods and 45 seeds of
+## the monster's favorite crop (this season's, else its first). Returns
+## {treats, seed_id, seeds} actually added.
+func give_angie_gift(m: RefCounted) -> Dictionary:
+	var cfg := care_config
+	var out := {"treats": 0, "seed_id": "", "seeds": 0}
+	if not cfg.angie_gift_enabled or m == null:
+		return out
+	if cfg.angie_treat_count > 0 and _items().has_item(cfg.angie_treat_id):
+		out.treats = add_item(cfg.angie_treat_id, cfg.angie_treat_count)
+	var sp = m.get_species()
+	if sp and cfg.angie_seed_count > 0:
+		var season := clock.season if clock else 0
+		var crop := ""
+		if season < sp.favorite_crops.size():
+			crop = sp.favorite_crops[season]
+		if crop == "":
+			for c in sp.favorite_crops:
+				if c != "":
+					crop = c
+					break
+		var seed = _items().get_seed_for_crop(StringName(crop)) if crop != "" else null
+		if seed:
+			out.seed_id = String(seed.id)
+			out.seeds = add_item(seed.id, cfg.angie_seed_count)
+	return out
+
+
 func get_party_max() -> int:
 	var cfg := load(MONSTER_CONFIG_PATH) as MonsterConfig
 	return cfg.party_max if cfg else 2
@@ -275,6 +592,7 @@ func to_dict() -> Dictionary:
 		"stamina": stamina,
 		"last_sleep_was_pass_out": last_sleep_was_pass_out,
 		"pass_out_count": pass_out_count,
+		"barn_upgrades": barn_upgrades,
 	}
 
 
@@ -304,6 +622,8 @@ func from_dict(data: Dictionary) -> void:
 	_set_stamina(float(data.get("stamina", energy_config.max_stamina)))
 	last_sleep_was_pass_out = bool(data.get("last_sleep_was_pass_out", false))
 	pass_out_count = int(data.get("pass_out_count", 0))
+	barn_upgrades = clampi(int(data.get("barn_upgrades", 0)), 0, barn_data.max_upgrades)
+	care_changed.emit()
 
 
 func _on_inventory_changed() -> void:
@@ -312,3 +632,10 @@ func _on_inventory_changed() -> void:
 
 func _on_day_ended(_day: int, pass_out: bool) -> void:
 	apply_sleep(pass_out)
+	apply_daily_care()
+
+
+## The item catalog, loaded by path: naming ItemCatalog (which names
+## ItemData) in this autoload trips the "resources still in use" quirk.
+func _items() -> Resource:
+	return load(ITEM_CATALOG_PATH)
