@@ -1,0 +1,8 @@
+[gd_scene load_steps=3 format=3]
+
+[ext_resource type="Script" path="res://scripts/ui/shop_ui.gd" id="1_shopui"]
+[ext_resource type="Resource" path="res://resources/shop/seed_shop.tres" id="2_shop"]
+
+[node name="ShopUI" type="CanvasLayer"]
+script = ExtResource("1_shopui")
+default_shop = ExtResource("2_shop")

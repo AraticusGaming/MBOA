@@ -1,0 +1,12 @@
+[gd_resource type="Resource" script_class="EconomyConfig" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/core/economy_config.gd" id="1_econ"]
+
+[resource]
+script = ExtResource("1_econ")
+starting_coins = 500
+starting_items = {
+&"turnip_seeds": 10
+}
+inventory_slots = 24
+hotbar_item_slots = 5

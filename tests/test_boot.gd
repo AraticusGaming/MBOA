@@ -12,7 +12,7 @@ func _run_tests() -> void:
 	var clock := root.get_node_or_null("Clock") as GameClock
 	check(clock != null, "Clock autoload present")
 	for action in ["move_up", "move_down", "move_left", "move_right", "interact",
-			"tool_1", "tool_2", "tool_3", "tool_4", "tool_5", "cancel",
+			"tool_1", "tool_2", "tool_3", "tool_4", "tool_5", "tool_6", "tool_7", "tool_8", "tool_9", "cancel",
 			"debug_time_x1", "debug_time_x10", "debug_time_x60", "debug_sleep", "debug_save", "debug_load"]:
 		check(InputMap.has_action(action), "input action '%s'" % action)
 	var packed := load(MAIN_SCENE) as PackedScene
@@ -42,7 +42,8 @@ func _run_tests() -> void:
 	player.facing = Vector2i.DOWN
 	await physics_frame
 	check_eq(player.get_target_cell(), Vector2i(3, 1), "player targets faced cell")
-	check_eq(player.tools.size(), 5, "hotbar: Pulaski, sickle, pickaxe, watering can, seeds")
+	check_eq(player.tools.size(), 4, "tools: Pulaski, sickle, pickaxe, watering can")
+	check_eq(player.get_hotbar_size(), 9, "hotbar: 4 tools + 5 inventory slots (placeholder)")
 	check(player.select_tool_by_id(&"pulaski") or player.current_tool.id == &"pulaski", "select Pulaski")
 	check(player.interact(), "player tills faced cell")
 	check_eq(grid.get_plot(Vector2i(3, 1)).state, FarmPlot.State.TILLED, "faced cell tilled")
@@ -55,7 +56,11 @@ func _run_tests() -> void:
 	check(ps != null and ps.stamina < ps.energy_config.max_stamina, "tool uses spent stamina")
 	check(hud.get_node("%StaminaBar").value == ps.stamina and hud.get_node("%HealthBar").value == ps.health,
 		"HUD stamina and health bars track PlayerState")
-	check_eq(hud.get_node("%ToolButtons").get_child_count(), 5, "HUD builds one button per hotbar slot")
+	check_eq(hud.get_node("%ToolButtons").get_child_count(), 9, "HUD builds one button per hotbar slot")
+	check(hud.get_slot_text(4).contains("Turnip Seeds x"), "HUD hotbar shows the starting seeds")
+	check_eq(hud.get_node("%CoinsLabel").text, "Coins: %d" % ps.coins, "HUD shows Coins")
+	check(main.get_node_or_null("ShopUI") is ShopUI, "shop UI in main scene")
+	check(main.get_node_or_null("Farm/ShopCounter") is ShopCounter, "shop counter on the farm")
 	var trees := 0
 	for y in grid.grid_size.y:
 		for x in grid.grid_size.x:

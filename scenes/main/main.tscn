@@ -1,9 +1,10 @@
-[gd_scene load_steps=5 format=3]
+[gd_scene load_steps=6 format=3]
 
 [ext_resource type="PackedScene" path="res://scenes/farm/farm.tscn" id="1_farm"]
 [ext_resource type="PackedScene" path="res://scenes/ui/hud.tscn" id="2_hud"]
 [ext_resource type="Script" path="res://scripts/ui/day_night_tint.gd" id="3_tint"]
 [ext_resource type="Script" path="res://scripts/core/debug_keys.gd" id="4_debug"]
+[ext_resource type="PackedScene" path="res://scenes/ui/shop_ui.tscn" id="5_shopui"]
 
 [node name="Main" type="Node2D"]
 
@@ -13,6 +14,8 @@ script = ExtResource("3_tint")
 [node name="Farm" parent="." instance=ExtResource("1_farm")]
 
 [node name="HUD" parent="." instance=ExtResource("2_hud")]
+
+[node name="ShopUI" parent="." instance=ExtResource("5_shopui")]
 
 [node name="DebugKeys" type="Node" parent="."]
 script = ExtResource("4_debug")

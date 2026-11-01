@@ -1,0 +1,15 @@
+[gd_resource type="Resource" script_class="ItemData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/core/item_data.gd" id="1_item"]
+
+[resource]
+script = ExtResource("1_item")
+id = &"waxweed_starter"
+display_name = "Waxweed Starter"
+kind = 1
+buy_price = 40
+sell_price = 20
+max_stack = 99
+crop_id = &"wet_waxweed"
+edible = false
+color = Color(0.6, 0.65, 0.4, 1)

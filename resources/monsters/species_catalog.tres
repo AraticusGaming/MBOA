@@ -1,0 +1,15 @@
+[gd_resource type="Resource" script_class="SpeciesCatalog" load_steps=10 format=3]
+
+[ext_resource type="Script" path="res://scripts/creatures/species_catalog.gd" id="1_catalog"]
+[ext_resource type="Script" path="res://scripts/creatures/species_data.gd" id="2_species"]
+[ext_resource type="Resource" path="res://resources/monsters/species/cinderkin.tres" id="3_cinderkin"]
+[ext_resource type="Resource" path="res://resources/monsters/species/rockback.tres" id="4_rockback"]
+[ext_resource type="Resource" path="res://resources/monsters/species/robin.tres" id="5_robin"]
+[ext_resource type="Resource" path="res://resources/monsters/species/crow.tres" id="6_crow"]
+[ext_resource type="Resource" path="res://resources/monsters/species/blue_jay.tres" id="7_blue_jay"]
+[ext_resource type="Resource" path="res://resources/monsters/species/jumping_spider.tres" id="8_jumping_spider"]
+[ext_resource type="Resource" path="res://resources/monsters/species/praying_mantis.tres" id="9_praying_mantis"]
+
+[resource]
+script = ExtResource("1_catalog")
+species = Array[ExtResource("2_species")]([ExtResource("3_cinderkin"), ExtResource("4_rockback"), ExtResource("5_robin"), ExtResource("6_crow"), ExtResource("7_blue_jay"), ExtResource("8_jumping_spider"), ExtResource("9_praying_mantis")])

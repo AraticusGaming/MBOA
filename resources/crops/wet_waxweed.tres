@@ -1,0 +1,21 @@
+[gd_resource type="Resource" script_class="CropData" load_steps=3 format=3]
+
+[ext_resource type="Script" path="res://scripts/farm/crop_data.gd" id="1_crop"]
+[ext_resource type="Texture2D" path="res://assets/sprites/crop_basic.png" id="2_sheet"]
+
+[resource]
+script = ExtResource("1_crop")
+id = &"wet_waxweed"
+display_name = "Wet Waxweed"
+seasons = 7
+stage_days = PackedInt32Array(2, 2, 2)
+harvest_item_id = &"wet_waxweed"
+harvest_amount = 1
+requires_adjacent_tree = true
+tree_search_radius = 1
+min_tree_stage = 2
+placeholder_color = Color(0.55, 0.6, 0.3, 1)
+sprite_sheet = ExtResource("2_sheet")
+sprite_tint = Color(0.75, 0.85, 0.55, 1)
+frame_size = Vector2i(16, 16)
+stage_frames = PackedInt32Array(0, 1, 2, 3)

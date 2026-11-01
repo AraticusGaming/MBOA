@@ -13,11 +13,15 @@ extends Node2D
 ## Trees (TreeData) advance through seed -> seedling -> sapling -> grown.
 ##
 ## Tools (ToolData, one tile each): Pulaski hits a tree on the cell or tills
-## empty soil; watering can waters; seeds plant. Sickle and pickaxe have no
-## target yet (GDD does not say what they act on) and report failure.
+## empty soil; watering can waters (seeds are planted with plant()). Not GDD, placeholder (Ledan
+## ruling): the sickle clears grass and weeds, the pickaxe breaks rocks
+## (ObstacleData, resources/obstacles/*.tres). Cleared trees and obstacles
+## report their drops through `items_dropped` (wood, stone).
 
 signal plot_changed(cell: Vector2i)
 signal harvested(crop_id: StringName, cell: Vector2i)
+## A crop died because the season changed and it doesn't grow in the new one.
+signal crop_died(cell: Vector2i, crop_id: StringName)
 ## Emitted when a tool/interact is attempted on a cell (success or not).
 signal action_performed(cell: Vector2i, action: StringName, success: bool)
 ## A Pulaski hit landed on a tree (hits = hits taken in its current stage).
@@ -25,8 +29,14 @@ signal tree_hit(cell: Vector2i, stage: int, hits: int)
 ## A grown tree came down and left a stump.
 signal tree_felled(cell: Vector2i, tree_id: StringName)
 ## A tree (seed/seedling dug out, sapling cut, or stump cleared) left the cell.
-## Drops (wood etc.) are not designed yet; listen here when they are.
 signal tree_removed(cell: Vector2i, tree_id: StringName, from_stage: int)
+## A sickle/pickaxe hit landed on an obstacle (hits taken so far).
+signal obstacle_hit(cell: Vector2i, obstacle_id: StringName, hits: int)
+## An obstacle was cleared from the cell.
+signal obstacle_cleared(cell: Vector2i, obstacle_id: StringName)
+## Items produced on `cell` (wood from trees, stone from rocks...). The player
+## puts them in the inventory.
+signal items_dropped(cell: Vector2i, item_id: StringName, amount: int)
 
 ## Grid size in cells. PLACEHOLDER.
 @export var grid_size: Vector2i = Vector2i(12, 8)
@@ -34,18 +44,24 @@ signal tree_removed(cell: Vector2i, tree_id: StringName, from_stage: int)
 @export var cell_size: int = 16
 ## Crops known to this grid (data-driven, see resources/crops/*.tres).
 @export var crops: Array[CropData] = []
-## Crop planted by the Seed tool (empty = first entry of `crops`).
-@export var selected_seed_id: StringName = &""
 ## GDD: crops are tied to seasons. When true, a crop can only be planted in a
-## season listed in its CropData.seasons. (What happens to crops when the
-## season changes is not specified by the GDD, so nothing happens yet.)
+## season listed in its CropData.seasons.
 @export var enforce_crop_seasons: bool = true
+## Not GDD, placeholder (Ledan ruling, Stardew rule): when the season changes,
+## crops that don't grow in the new season die (the plot goes back to tilled
+## soil). Toggle off to keep them.
+@export var kill_out_of_season_crops: bool = true
 ## Tree types known to this grid (resources/trees/*.tres).
 @export var trees: Array[TreeData] = []
 ## Trees placed on a new farm: cell (Vector2i) -> stage name ("seed",
 ## "seedling", "sapling", "grown", "stump"); uses the first entry of `trees`.
 ## Loading a save replaces them.
 @export var starting_trees: Dictionary = {}
+## Obstacle types known to this grid (resources/obstacles/*.tres).
+@export var obstacles: Array[ObstacleData] = []
+## Obstacles placed on a new farm: cell (Vector2i) -> obstacle id. Placeholder
+## layout. Loading a save replaces them.
+@export var starting_obstacles: Dictionary = {}
 
 @export_group("Art")
 ## Farm TileSet (resources/farm_tileset.tres). null = placeholder rectangles.
@@ -72,6 +88,7 @@ var soil_layer: TileMapLayer
 
 var _crop_index: Dictionary = {}
 var _tree_index: Dictionary = {}
+var _obstacle_index: Dictionary = {}
 var _starting_trees_placed: bool = false
 
 
@@ -89,6 +106,8 @@ func _ready() -> void:
 		clock = get_node_or_null("/root/Clock") as GameClock
 	if clock and not clock.day_started.is_connected(_on_day_started):
 		clock.day_started.connect(_on_day_started)
+	if clock and not clock.season_changed.is_connected(_on_season_changed):
+		clock.season_changed.connect(_on_season_changed)
 
 
 # --- Queries ----------------------------------------------------------------
@@ -117,10 +136,42 @@ func get_tree_data(tree_id: StringName) -> TreeData:
 	return _tree_index.get(tree_id)
 
 
+func get_obstacle_data(obstacle_id: StringName) -> ObstacleData:
+	if _obstacle_index.size() != obstacles.size():
+		_rebuild_obstacle_index()
+	return _obstacle_index.get(obstacle_id)
+
+
 ## Tree on `cell`, or null.
 func get_farm_tree(cell: Vector2i) -> FarmTree:
 	var plot := get_plot(cell)
 	return plot.tree if plot else null
+
+
+## True if a tree of at least `min_stage` (TreeData.Stage) stands within
+## `radius` cells (Chebyshev) of `cell`, not counting `cell` itself.
+func is_near_tree(cell: Vector2i, radius: int = 1, min_stage: int = TreeData.Stage.SAPLING) -> bool:
+	for dy in range(-radius, radius + 1):
+		for dx in range(-radius, radius + 1):
+			if dx == 0 and dy == 0:
+				continue
+			var t := get_farm_tree(cell + Vector2i(dx, dy))
+			if t != null and t.stage >= min_stage:
+				return true
+	return false
+
+
+## Placement rules from CropData (e.g. Wet Waxweed must be near a tree).
+func meets_placement(cell: Vector2i, crop: CropData) -> bool:
+	if crop == null or not crop.requires_adjacent_tree:
+		return true
+	return is_near_tree(cell, crop.tree_search_radius, crop.min_tree_stage)
+
+
+## CropData planted on `cell`, or null.
+func get_crop_at(cell: Vector2i) -> CropData:
+	var plot := get_plot(cell)
+	return get_crop(plot.crop_id) if plot and plot.is_planted() else null
 
 
 ## True if `crop` may be planted in the current season (see enforce_crop_seasons).
@@ -173,21 +224,22 @@ func use_tool(cell: Vector2i, tool: ToolData) -> bool:
 		return false
 	match tool.kind:
 		ToolData.Kind.PULASKI:
+			if get_plot(cell).has_obstacle():
+				action_performed.emit(cell, &"till", false)
+				return false
 			return hit_tree(cell) if get_plot(cell).has_tree() else till(cell)
 		ToolData.Kind.WATERING_CAN:
 			return water(cell)
-		ToolData.Kind.SEEDS:
-			return plant(cell, _get_seed_id())
 		ToolData.Kind.SICKLE:
-			action_performed.emit(cell, &"sickle", false)  # target not in GDD yet
+			return hit_obstacle(cell, tool, &"sickle")
 		ToolData.Kind.PICKAXE:
-			action_performed.emit(cell, &"pickaxe", false)  # target not in GDD yet
+			return hit_obstacle(cell, tool, &"pickaxe")
 	return false
 
 
 func till(cell: Vector2i) -> bool:
 	var plot := get_plot(cell)
-	var ok := plot != null and plot.state == FarmPlot.State.EMPTY and not plot.has_tree()
+	var ok := plot != null and plot.state == FarmPlot.State.EMPTY and not plot.is_blocked()
 	if ok:
 		plot.state = FarmPlot.State.TILLED
 		_changed(cell)
@@ -199,7 +251,7 @@ func plant(cell: Vector2i, crop_id: StringName) -> bool:
 	var plot := get_plot(cell)
 	var crop := get_crop(crop_id)
 	var ok := plot != null and plot.state == FarmPlot.State.TILLED and crop != null \
-		and can_plant_now(crop)
+		and can_plant_now(crop) and meets_placement(cell, crop)
 	if ok:
 		plot.state = FarmPlot.State.PLANTED
 		plot.crop_id = crop_id
@@ -221,7 +273,7 @@ func water(cell: Vector2i) -> bool:
 
 
 ## Harvests a mature crop; the plot returns to TILLED. Returns the crop id or
-## &"" on failure. Inventory handling is Milestone 2 (listen to `harvested`).
+## &"" on failure. The Player puts the crop's item in the inventory.
 func harvest(cell: Vector2i) -> StringName:
 	if not is_mature(cell):
 		action_performed.emit(cell, &"harvest", false)
@@ -239,11 +291,44 @@ func harvest(cell: Vector2i) -> StringName:
 ## Puts a tree on an empty, untilled cell. Returns false if the cell is taken.
 func place_tree(cell: Vector2i, tree_id: StringName, stage: int = TreeData.Stage.SEED) -> bool:
 	var plot := get_plot(cell)
-	if plot == null or plot.state != FarmPlot.State.EMPTY or plot.has_tree() \
+	if plot == null or plot.state != FarmPlot.State.EMPTY or plot.is_blocked() \
 			or get_tree_data(tree_id) == null:
 		return false
 	plot.tree = FarmTree.create(tree_id, stage)
 	_changed(cell)
+	return true
+
+
+## Puts an obstacle on an empty, untilled, unblocked cell.
+func place_obstacle(cell: Vector2i, obstacle_id: StringName) -> bool:
+	var plot := get_plot(cell)
+	if plot == null or plot.state != FarmPlot.State.EMPTY or plot.is_blocked() \
+			or get_obstacle_data(obstacle_id) == null:
+		return false
+	plot.obstacle_id = obstacle_id
+	plot.obstacle_hits = 0
+	_changed(cell)
+	return true
+
+
+## One sickle/pickaxe hit on the obstacle at `cell`. Only the obstacle's own
+## tool works (placeholder ruling). Returns true if a hit landed.
+func hit_obstacle(cell: Vector2i, tool: ToolData, action: StringName = &"clear") -> bool:
+	var plot := get_plot(cell)
+	var data := get_obstacle_data(plot.obstacle_id) if plot and plot.has_obstacle() else null
+	if data == null or not data.is_cleared_by(tool):
+		action_performed.emit(cell, action, false)
+		return false
+	plot.obstacle_hits += 1
+	obstacle_hit.emit(cell, data.id, plot.obstacle_hits)
+	if plot.obstacle_hits >= data.hits:
+		plot.obstacle_id = &""
+		plot.obstacle_hits = 0
+		obstacle_cleared.emit(cell, data.id)
+		if data.drop_item_id != &"" and data.drop_amount > 0:
+			items_dropped.emit(cell, data.drop_item_id, data.drop_amount)
+	_changed(cell)
+	action_performed.emit(cell, action, true)
 	return true
 
 
@@ -269,10 +354,38 @@ func hit_tree(cell: Vector2i) -> bool:
 		else:
 			plot.tree = null
 			tree_removed.emit(cell, tree.tree_id, stage)
+		var wood := data.get_drop_for_stage(stage)
+		if wood > 0 and data.drop_item_id != &"":
+			items_dropped.emit(cell, data.drop_item_id, wood)
 	_changed(cell)
 	var is_dig := stage == TreeData.Stage.SEED or stage == TreeData.Stage.SEEDLING
 	action_performed.emit(cell, &"dig_out" if is_dig else &"chop", true)
 	return true
+
+
+## Season change (Stardew rule, placeholder): crops that don't grow in
+## `season` die. Returns how many died. No-op when kill_out_of_season_crops
+## is off.
+func kill_out_of_season(season: int) -> int:
+	if not kill_out_of_season_crops:
+		return 0
+	var died := 0
+	for y in grid_size.y:
+		for x in grid_size.x:
+			var cell := Vector2i(x, y)
+			var plot := get_plot(cell)
+			if not plot.is_planted():
+				continue
+			var crop := get_crop(plot.crop_id)
+			if crop != null and crop.grows_in(season):
+				continue
+			var crop_id := plot.crop_id
+			plot.clear_crop()
+			plot.state = FarmPlot.State.TILLED
+			died += 1
+			_changed(cell)
+			crop_died.emit(cell, crop_id)
+	return died
 
 
 ## Day rollover: grow watered crops, then reset watered flags.
@@ -349,6 +462,8 @@ func _draw() -> void:
 				_draw_crop(plot, rect)
 			elif plot.has_tree():
 				_draw_tree(plot.tree, rect)
+			if plot.has_obstacle():
+				_draw_obstacle(plot, rect)
 	if is_in_bounds(highlight_cell):
 		var hr := Rect2(Vector2(highlight_cell) * cs, Vector2(cs, cs)).grow(-0.5)
 		draw_rect(hr, color_highlight, false, 1.0)
@@ -363,7 +478,8 @@ func _draw_crop(plot: FarmPlot, rect: Rect2) -> void:
 		# Bottom-center the frame on the cell (taller crop frames grow upward).
 		var pos := Vector2(rect.position.x + (rect.size.x - region.size.x) * 0.5,
 			rect.end.y - region.size.y)
-		draw_texture_rect_region(crop.sprite_sheet, Rect2(pos.round(), region.size), region)
+		draw_texture_rect_region(crop.sprite_sheet, Rect2(pos.round(), region.size), region,
+			crop.sprite_tint)
 		return
 	var t := float(crop.get_stage(plot.growth_days)) / float(CropData.STAGE_COUNT - 1)
 	var size := lerpf(4.0, cell_size - 4.0, t)
@@ -400,6 +516,29 @@ func _draw_tree(tree: FarmTree, rect: Rect2) -> void:
 			draw_rect(Rect2(c.x - 4, bottom - 7, 8, 1), data.color_trunk.lightened(0.3))
 
 
+## Placeholder obstacle drawing (no art yet).
+func _draw_obstacle(plot: FarmPlot, rect: Rect2) -> void:
+	var data := get_obstacle_data(plot.obstacle_id)
+	if data == null:
+		return
+	var c := rect.get_center()
+	var bottom := rect.end.y
+	match data.look:
+		ObstacleData.Look.GRASS:
+			for i in 4:
+				draw_rect(Rect2(rect.position.x + 2 + i * 3.5, bottom - 7 - (i % 2) * 2, 2, 5 + (i % 2) * 2), data.color)
+		ObstacleData.Look.WEED:
+			draw_rect(Rect2(c.x - 0.5, bottom - 10, 1, 8), data.color)
+			draw_rect(Rect2(c.x - 5, bottom - 9, 4, 3), data.color)
+			draw_rect(Rect2(c.x + 1, bottom - 11, 4, 3), data.color)
+			draw_rect(Rect2(c.x - 1, bottom - 13, 2, 2), Color(0.85, 0.75, 0.2))
+		ObstacleData.Look.ROCK:
+			var r := Rect2(c.x - 5, bottom - 9, 10, 7)
+			draw_rect(r, data.color)
+			draw_rect(Rect2(r.position.x + 1, r.position.y, 6, 2), data.color.lightened(0.3))
+			draw_rect(r, data.color.darkened(0.4), false, 1.0)
+
+
 # --- Internals --------------------------------------------------------------
 
 func _build_plots() -> void:
@@ -422,10 +561,24 @@ func _rebuild_tree_index() -> void:
 			_tree_index[t.id] = t
 
 
+func _rebuild_obstacle_index() -> void:
+	_obstacle_index.clear()
+	for o in obstacles:
+		if o != null:
+			_obstacle_index[o.id] = o
+
+
+## Places starting_trees and starting_obstacles once on a new farm (a loaded
+## save sets _starting_trees_placed and decides instead).
 func _place_starting_trees() -> void:
-	if _starting_trees_placed or trees.is_empty() or trees[0] == null:
+	if _starting_trees_placed:
 		return
 	_starting_trees_placed = true
+	for cell in starting_obstacles:
+		if cell is Vector2i:
+			place_obstacle(cell, StringName(starting_obstacles[cell]))
+	if trees.is_empty() or trees[0] == null:
+		return
 	for cell in starting_trees:
 		var stage_value = starting_trees[cell]
 		var stage := TreeData.stage_from_name(stage_value) if stage_value is String \
@@ -446,12 +599,6 @@ func _grow_tree(tree: FarmTree) -> void:
 		tree.stage += 1
 		tree.days_in_stage = 0
 		tree.hits = 0
-
-
-func _get_seed_id() -> StringName:
-	if selected_seed_id != &"":
-		return selected_seed_id
-	return crops[0].id if not crops.is_empty() and crops[0] != null else &""
 
 
 func _setup_soil_layer() -> void:
@@ -477,6 +624,10 @@ func _changed(cell: Vector2i) -> void:
 	_update_tile(cell)
 	plot_changed.emit(cell)
 	queue_redraw()
+
+
+func _on_season_changed(new_season: int, _year: int) -> void:
+	kill_out_of_season(new_season)
 
 
 func _on_day_started(_day: int) -> void:

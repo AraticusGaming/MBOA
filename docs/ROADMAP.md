@@ -29,15 +29,15 @@ The GDD's suggested order is a suggestion, not a rule. With limited weekly resou
 Assessment, bond, breed, first baby. Battles, tournaments, village, reputation, world map, and mobile come after the slice.
 Test creature: the Cinderkin (`docs/creatures/cinderkin.md`). Slice simplifications: all breeding produces eggs, fixed hatch time, no climate or recovery timers.
 
-## Slice 1: Food, shop, monster data, Cinderkin
-- [ ] Coins, shop (seeds), selling crops (Cody)
-- [ ] Monster data resource per the GDD (species, family, gender, rank, stats HP/STR/DEF/INT/SPD with per-stat letters, bond, favorite food, parentage) (Cody)
-- [ ] Cinderkin species data (Critter, Woodland, favorite food Wet Waxweed) and the Wet Waxweed crop, which must be planted near trees (Cody)
+## Slice 1: Food, shop, monster data, Cinderkin (Cody items done in M2, branch feature/m2-food-assessment)
+- [x] Coins, shop (seeds), selling crops (Cody)
+- [x] Monster data resource per the GDD (species, family, gender, rank, stats HP/STR/DEF/INT/SPD with per-stat letters, bond, favorite food, parentage) (Cody)
+- [x] Cinderkin species data (Critter, Woodland, favorite food Wet Waxweed) and the Wet Waxweed crop, which must be planted near trees (Cody)
 - [ ] Cinderkin sprites, portrait, Waxweed icon (ART, branch art/cinderkin)
 
-## Slice 2: Assessment and the first monster
-- [ ] One biome room (Woodland), 5 traps, random creature movement, rank odds D 79 / C 20 / B 1, keep one or use all 5 (Cody)
-- [ ] First monster sets the farm's starting biome and its habitat is pre-built (Cody)
+## Slice 2: Assessment and the first monster (Cody items done in M2; the opening and character creation are skipped, a placeholder farm portal starts the Assessment; habitat is a data/state stub until Slice 3)
+- [x] One biome room (Woodland), 5 traps, random creature movement, rank odds D 79 / C 20 / B 1, keep one or use all 5 (Cody)
+- [x] First monster sets the farm's starting biome and its habitat is pre-built (Cody)
 - [ ] A few more Woodland creatures and room art (ART)
 
 ## Slice 3: Pasture, barn, bonding

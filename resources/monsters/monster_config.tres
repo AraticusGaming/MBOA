@@ -1,0 +1,12 @@
+[gd_resource type="Resource" script_class="MonsterConfig" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/creatures/monster_config.gd" id="1_cfg"]
+
+[resource]
+script = ExtResource("1_cfg")
+bond_max = 100.0
+barn_bond = 25.0
+star_bond = 100.0
+party_max = 2
+letter_spread = 1
+female_chance = 0.5

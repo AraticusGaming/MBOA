@@ -44,13 +44,27 @@ Milestone 1.5 (align with the GDD):
       `StatLetterBands` + `resources/stats/stat_letters_1_20.tres`, GDD overall-rank helper
 - [x] Removed the per-season "climate" hook (GDD climate = egg/pregnancy environment, M7)
 - [x] Health and stamina bars (100%); tool uses cost stamina; at 0 stamina no tools and
-      slower movement; refill by sleeping, `eat()` and `rest_in_hot_spring()` (stubs)
+      slower movement; refill by sleeping, `eat()` (per-food refill) and `soak_in_hot_spring(delta)` (steady rate)
 - [x] GDD tools as data (`resources/tools/`): Pulaski, sickle, pickaxe, watering can (1 tile),
       plus the seed bag; trees with four stages and GDD hit counts (`resources/trees/`)
 - [x] Crop data: four growth stages, per-stage days and a season tag (`resources/crops/`)
 - [x] `SaveManager`: versioned saves of clock, player and farm (incl. trees), autosave
       each morning, tested across days and seasons
 - [ ] Display options (Ledan to confirm; 640x360 with integer scaling unchanged)
+
+Milestone 2 = vertical slice Slices 1-2 (`docs/ROADMAP.md`):
+- [x] Coins, items and a 5-slot item hotbar (`ItemData`, `resources/items/`), inventory,
+      a seed shop counter on the farm (buy seeds, instant-sell crops; `resources/shop/`)
+- [x] Eating refills stamina by each food's `stamina_refill`; hot spring refills per second
+- [x] Monster data (`Monster`, `SpeciesData`, `MonsterFactory`; `resources/monsters/`): GDD
+      fields, rank-consistent stat rolls, bond thresholds, party of 2, saved
+- [x] Cinderkin test creature (Critter, Woodland, favorite Wet Waxweed, blue-flame S variant)
+      and Wet Waxweed, which can only be planted next to a tree (`requires_adjacent_tree`)
+- [x] Woodland Assessment room: 5 traps, wandering creatures with visible ranks, rank odds
+      D79/C20/B1, catch or knocked-over traps, keep/release; the chosen monster sets the farm
+      biome and pre-builds its habitat (`resources/assessment/woodland.tres`, `resources/habitats/`)
+- [ ] Skipped by design: the opening, character creation and the Association; a placeholder
+      portal on the farm (bottom left) starts the Assessment instead
 
 User rulings in `docs/DECISIONS.md` override the GDD. All numbers that neither fixes (phase
 boundaries, crop and tree stage days, stamina costs, slowdowns, penalties...) are
@@ -62,9 +76,10 @@ scenes, not in code. GDD-fixed values (four crop stages, tree hits 3 / 6 + 4, ba
 | Action | Keys |
 | --- | --- |
 | Move | WASD / arrow keys |
-| Use tool on faced cell / harvest / sleep at bed | E or Space |
-| Select Pulaski / Sickle / Pickaxe / Watering can / Seeds | 1 / 2 / 3 / 4 / 5 (or the HUD buttons) |
-| Act on an adjacent cell (mouse / touch) | Left click / tap |
+| Use tool on faced cell / harvest / sleep at bed / open shop or portal / eat selected food / set a trap | E or Space |
+| Select Pulaski / Sickle / Pickaxe / Watering can | 1 / 2 / 3 / 4 (or the HUD buttons) |
+| Select item slot 1-5 (seeds, food...) | 5 / 6 / 7 / 8 / 9 |
+| Act on an adjacent cell / set a trap nearby (mouse / touch) | Left click / tap |
 | Cancel (reserved) | Esc |
 | Debug: clock speed x1 / x10 / x60 | F1 / F2 / F3 |
 | Debug: sleep now | F4 |
@@ -80,7 +95,7 @@ scenes, not in code. GDD-fixed values (four crop stages, tree hits 3 / 6 + 4, ba
 - `PlayerState` autoload (`scripts/core/player_state.gd`): coins, health, stamina
   (`resources/energy_config.tres`) and the party; on `day_ended` it refills stamina and,
   after a pass-out, applies the penalty (`resources/pass_out_config.tres`). Exposes
-  `spend_stamina`, `refill_stamina`, `eat`, `rest_in_hot_spring`, `damage`, `heal`.
+  `spend_stamina`, `refill_stamina`, `eat`, `soak_in_hot_spring`, `damage`, `heal`.
 - `SaveManager` autoload (`scripts/core/save_manager.gd`): `{version, clock, player_state,
   farm}` JSON in `user://` (trees are saved on their farm plot). `save_game()` /
   `load_game()`; autosaves at the start of each day; `migrate()` handles old versions.
@@ -89,8 +104,15 @@ scenes, not in code. GDD-fixed values (four crop stages, tree hits 3 / 6 + 4, ba
   (`resources/tools/`), trees `TreeData` (`resources/trees/`). The farm's starting trees
   are `FarmGrid.starting_trees` in `scenes/farm/farm.tscn`.
 - The bed (`scripts/farm/bed.gd`) moves the player to its wake spot on every `day_started`.
-- Creatures (data only so far): `StatLetterBands` (`scripts/creatures/stat_letter_bands.gd`)
-  maps a stat value to its letter; one resource per stat range in `resources/stats/`.
+- Creatures (`scripts/creatures/`): `StatLetterBands` maps a stat value to its letter
+  (`resources/stats/`); `SpeciesData`/`SpeciesCatalog` (`resources/monsters/species/`),
+  `MonsterFactory` rolls a `Monster` for a rank; `MonsterConfig` holds bond thresholds and
+  party size. `AssessmentSession` is the scene-free Assessment logic (spawns, traps, odds),
+  driven by `AssessmentRoom` (`scenes/world/assessment_room.tscn`) and entered through
+  `AssessmentDoor` on the farm. `PlayerState.complete_assessment()` stores the first monster,
+  `farm_biome` and the pre-built habitat (`HabitatData`, `resources/habitats/`).
+- Items and shop: `ItemData`/`ItemCatalog` (`resources/items/`), `Inventory`, `Shop` + `ShopData`
+  (`resources/shop/`), `ShopCounter` on the farm opens `ShopUI`; prices in `economy_config.tres`.
 - UI: `scenes/ui/hud.tscn`; night tint is `DayNightTint` (CanvasModulate) in the main scene.
 
 ## Tests
@@ -100,8 +122,9 @@ tests/run_all.sh /path/to/godot          # imports, then runs every tests/test_*
 godot --headless --path . --script res://tests/test_clock.gd   # single suite
 ```
 Suites: `test_clock`, `test_farm` (plots, tools, trees), `test_sleep` (pass-out, bed),
-`test_energy` (health/stamina), `test_save` (SaveManager), `test_stats` (stat letters), `test_art`, `test_boot` (loads the
-main scene).
+`test_energy` (health/stamina), `test_save` (SaveManager), `test_stats` (stat letters), `test_items`
+(coins, inventory, shop, eating), `test_monsters` (species, rolls, roster), `test_assessment` (rank odds,
+traps, first monster, farm door), `test_art`, `test_boot` (loads the main scene).
 
 ## Art integration
 See `assets/ART_NOTES.md` for sheet layouts. Godot-side resources:

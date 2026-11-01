@@ -1,0 +1,14 @@
+[gd_resource type="Resource" script_class="ObstacleData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/farm/obstacle_data.gd" id="1_obs"]
+
+[resource]
+script = ExtResource("1_obs")
+id = &"rock"
+display_name = "Rock (placeholder)"
+tool_kind = 2
+hits = 2
+drop_item_id = &"stone"
+drop_amount = 1
+look = 2
+color = Color(0.55, 0.55, 0.58, 1)

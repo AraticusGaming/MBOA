@@ -38,11 +38,22 @@ func _test_state() -> void:
 	check(ps.is_exhausted() and not ps.can_use_tools(), "exhausted at 0: no tools")
 	check(not ps.spend_stamina(1.0), "can't spend at 0")
 	check_eq(ps.get_speed_multiplier(), ps.energy_config.exhausted_speed_multiplier, "slowed at 0")
-	ps.eat(25.0)
-	check_eq(ps.stamina, 25.0, "eating refills stamina")
-	ps.rest_in_hot_spring(30.0)
-	check_eq(ps.stamina, 25.0 + ps.energy_config.hot_spring_stamina_per_game_hour * 0.5,
-		"hot spring refills per game hour")
+	ps.eat()
+	check_eq(ps.stamina, ps.energy_config.eat_stamina_refill, "eating without a food value: fallback refill")
+	check_eq(ps.energy_config.eat_stamina_refill, 25.0, "placeholder fallback eat refill 25")
+	var rate: float = ps.energy_config.hot_spring_stamina_per_second
+	check(rate > 0.0, "hot spring: steady rate (placeholder)")
+	for i in 4:
+		ps.soak_in_hot_spring(0.5)
+	check(is_equal_approx(ps.stamina, 25.0 + rate * 2.0), "hot spring: 2 s of soaking = 2 x rate")
+	ps.soak_in_hot_spring(1000.0)
+	check_eq(ps.stamina, 100.0, "hot spring refill caps at max")
+	check(is_equal_approx(ps.pass_out_config.reputation_penalty, 0.02),
+		"pass-out reputation penalty 0.02 (placeholder, inactive)")
+	ps.refill_stamina(0.0)
+	ps.spend_stamina(1000.0)
+	ps.eat(10.0)
+	check_eq(ps.stamina, 10.0, "eat amount override")
 	ps.refill_stamina()
 	check_eq(ps.stamina, 100.0, "refill to full")
 	check_eq(ps.get_speed_multiplier(), 1.0, "normal speed with stamina")
@@ -65,7 +76,7 @@ func _test_player_tool_gating() -> void:
 	var clock := make_clock()
 	var ps := _make_state()
 	var grid := FarmGrid.new()
-	grid.crops = [load(CROP_PATH) as CropData]
+	grid.crops = [load(CROP_PATH) as CropData, load("res://resources/crops/turnip.tres") as CropData]
 	grid.clock = clock
 	root.add_child(grid)
 	grid._ready()
@@ -82,8 +93,11 @@ func _test_player_tool_gating() -> void:
 	p.select_tool_by_id(&"pulaski")
 	check(p.act_on_cell(Vector2i(0, 0)), "Pulaski tills")
 	check_eq(ps.stamina, 100.0 - cost * 2.0, "tilling costs stamina")
-	p.select_tool_by_id(&"seeds")
+	p.set_tool(p.tools.size())  # first item slot: starting turnip seeds (placeholder kit)
+	check(p.get_current_item() != null and p.get_current_item().is_seed(), "seed item selected")
+	var seeds_before: int = ps.inventory.count(&"turnip_seeds")
 	check(p.act_on_cell(Vector2i(0, 0)), "plant")
+	check_eq(ps.inventory.count(&"turnip_seeds"), seeds_before - 1, "planting uses one seed")
 	check_eq(ps.stamina, 100.0 - cost * 2.0, "planting seeds is not a tool use")
 	ps.spend_stamina(1000.0)
 	p.select_tool_by_id(&"pulaski")
@@ -94,12 +108,17 @@ func _test_player_tool_gating() -> void:
 		"slowed at 0 stamina")
 	clock.advance_minutes(18.0 * 60.0)
 	check_eq(p.get_current_speed(),
-		normal * p.tired_speed_multiplier * ps.energy_config.exhausted_speed_multiplier,
-		"tired and exhausted multipliers stack (placeholder rule)")
+		normal * minf(p.tired_speed_multiplier, ps.energy_config.exhausted_speed_multiplier),
+		"tired + exhausted: the worse multiplier, not the product (ruling)")
+	check_eq(p.get_current_speed(), normal * 0.5, "tired + exhausted = 50%")
+	ps.refill_stamina()
+	check_eq(p.get_current_speed(), normal * p.tired_speed_multiplier, "tired only = 75%")
+	ps.spend_stamina(1000.0)
 	# Harvest is free even when exhausted (GDD: walk up and click).
 	var plot := grid.get_plot(Vector2i(0, 0))
-	plot.growth_days = (load(CROP_PATH) as CropData).get_days_to_mature()
+	plot.growth_days = (load("res://resources/crops/turnip.tres") as CropData).get_days_to_mature()
 	check(p.act_on_cell(Vector2i(0, 0)), "harvest works at 0 stamina")
+	check_eq(ps.inventory.count(&"turnip"), 1, "harvest puts the crop in the inventory")
 	p.free()
 	grid.free()
 	ps.free()

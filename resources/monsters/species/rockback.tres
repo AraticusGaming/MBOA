@@ -1,0 +1,19 @@
+[gd_resource type="Resource" script_class="SpeciesData" load_steps=3 format=3]
+
+[ext_resource type="Script" path="res://scripts/creatures/species_data.gd" id="1_species"]
+[ext_resource type="Resource" path="res://resources/stats/stat_letters_1_20.tres" id="2_bands"]
+
+[resource]
+script = ExtResource("1_species")
+id = &"rockback"
+display_name = "Rockback"
+family = 4
+modifier = &"earth"
+biomes = PackedInt32Array(2, 3)
+wild_catchable = true
+favorite_food_id = &"snouter_roe"
+favorite_crops = PackedStringArray("turnip", "tomato", "pumpkin", "")
+stat_bands = ExtResource("2_bands")
+rank_variants = {}
+variant_names = {}
+color = Color(0.45, 0.55, 0.4, 1)

@@ -4,7 +4,8 @@ extends Resource
 ##
 ## GDD: each crop has four growth stages and crops are tied to seasons.
 ## OPEN QUESTIONS (GDD): crop types, days per growth stage, season assignments.
-## Values in the .tres files are PLACEHOLDERS until those are decided.
+## Not GDD, placeholder (Ledan ruling): every crop, its stage days and its
+## seasons in resources/crops/*.tres are placeholders until those are decided.
 
 ## The GDD fixes four growth stages; the 4th is harvest-ready.
 const STAGE_COUNT := 4
@@ -17,6 +18,23 @@ const STAGE_COUNT := 4
 ## Watered days spent in stages 1-3 before reaching stage 4 (harvest-ready).
 ## Size must be STAGE_COUNT - 1. PLACEHOLDER (GDD open question).
 @export var stage_days: PackedInt32Array = PackedInt32Array([1, 1, 1])
+## Item put in the inventory on harvest (&"" = the item with the crop's id).
+@export var harvest_item_id: StringName = &""
+## Items per harvest. Not GDD, placeholder.
+@export_range(1, 20) var harvest_amount: int = 1
+@export_group("Placement")
+## The crop may only be planted near a tree (DECISIONS / cinderkin.md: Wet
+## Waxweed is farmable but must be placed near trees). Checked when planting
+## only; felling the tree later does not kill the crop (placeholder).
+@export var requires_adjacent_tree: bool = false
+## "Near" = a tree within this many cells (Chebyshev: 1 = the 8 neighbours).
+## PLACEHOLDER.
+@export_range(1, 5) var tree_search_radius: int = 1
+## Lowest TreeData.Stage that counts as a tree (2 = sapling). PLACEHOLDER:
+## sapling, grown tree or stump count; buried seeds and seedlings don't.
+@export_range(0, 4) var min_tree_stage: int = 2
+@export_group("")
+
 ## Placeholder draw color of the mature crop when there is no sprite sheet.
 @export var placeholder_color: Color = Color(0.9, 0.75, 0.2)
 
@@ -29,6 +47,13 @@ const STAGE_COUNT := 4
 ## Sheet frame for each of the four stages. crop_basic.png: [0 seed,
 ## 1 sprout, 2 leafy, 3 harvest-ready].
 @export var stage_frames: PackedInt32Array = PackedInt32Array([0, 1, 2, 3])
+## Modulate applied to the sheet so placeholder crops sharing crop_basic.png
+## look different (white = unchanged).
+@export var sprite_tint: Color = Color.WHITE
+
+
+func get_harvest_item_id() -> StringName:
+	return harvest_item_id if harvest_item_id != &"" else id
 
 
 ## Total watered days from planting to harvest-ready.
@@ -56,6 +81,16 @@ func is_mature(growth_days: int) -> bool:
 ## True if the crop can be planted in `season` (GameClock.Season value).
 func grows_in(season: int) -> bool:
 	return (seasons & (1 << season)) != 0
+
+
+## Season names this crop grows in, e.g. ["Spring", "Fall"].
+func get_season_names() -> PackedStringArray:
+	var names := PackedStringArray()
+	var all := ["Spring", "Summer", "Fall", "Winter"]
+	for i in all.size():
+		if grows_in(i):
+			names.append(all[i])
+	return names
 
 
 ## Sheet frame for a crop that has grown `growth_days` watered days.

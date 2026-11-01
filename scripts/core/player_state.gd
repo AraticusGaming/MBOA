@@ -1,6 +1,6 @@
 extends Node
-## Autoload "PlayerState": player data that outlives scenes (coins, health,
-## stamina, party), and the sleep handler: sleeping refills stamina (GDD) and
+## Autoload "PlayerState": player data that outlives scenes (coins,
+## inventory, health, stamina, party), and the sleep handler: sleeping refills stamina (GDD) and
 ## passing out applies the GDD pass-out penalty.
 ##
 ## Health outside battle is an OPEN QUESTION in the GDD: it is tracked and
@@ -10,20 +10,40 @@ signal sleep_resolved(pass_out: bool, penalties: Dictionary)
 signal coins_changed(coins: int)
 signal health_changed(health: float, max_health: float)
 signal stamina_changed(stamina: float, max_stamina: float)
+## The inventory's contents changed (forwarded from Inventory.changed).
+signal inventory_changed
+signal monsters_changed
+signal assessment_completed(monster: RefCounted)
 
+const MONSTER_CONFIG_PATH := "res://resources/monsters/monster_config.tres"
 const PASS_OUT_CONFIG_PATH := "res://resources/pass_out_config.tres"
 const ENERGY_CONFIG_PATH := "res://resources/energy_config.tres"
+const ECONOMY_CONFIG_PATH := "res://resources/economy_config.tres"
 
 var pass_out_config: PassOutConfig
 var energy_config: EnergyConfig
+var economy_config: EconomyConfig
 var health: float = 100.0
 var stamina: float = 100.0
-## Coins the player is carrying (GDD currency). Economy is Milestone 2.
+## Coins the player is carrying (GDD currency). New games start with
+## economy_config.starting_coins (placeholder).
 var coins: int = 0
-## Monsters with the player (GDD: up to two from the barn). Empty until
-## monsters exist; any member with add_bond(delta: float) receives the
-## pass-out bonding drop.
+## Items the player carries (stacks; the first slots are on the hotbar).
+var inventory: Inventory
+## Every monster the player owns (Monster instances), wherever it lives.
+var monsters: Array = []
+## Monsters with the player (GDD: up to two, MonsterConfig.party_max). Each
+## member with add_bond(delta: float) receives the pass-out bonding drop
+## (0 and inactive by default).
 var party: Array = []
+## Farm's starting biome (SpeciesData.Biome), set by the first monster
+## (GDD opening step 5); -1 before the Assessment.
+var farm_biome: int = -1
+## Habitats on the farm: [{id, biome, built}] (stub state; Slice 3 adds the
+## actual habitat areas).
+var habitats: Array = []
+## True once the Assessment chose the first monster.
+var assessment_done: bool = false
 ## True if the most recent day ended by passing out (2 AM) instead of sleeping.
 var last_sleep_was_pass_out: bool = false
 var pass_out_count: int = 0
@@ -33,8 +53,12 @@ var clock: GameClock
 func _init() -> void:
 	pass_out_config = GameClock._load_or_default(PASS_OUT_CONFIG_PATH, PassOutConfig) as PassOutConfig
 	energy_config = GameClock._load_or_default(ENERGY_CONFIG_PATH, EnergyConfig) as EnergyConfig
+	economy_config = GameClock._load_or_default(ECONOMY_CONFIG_PATH, EconomyConfig) as EconomyConfig
 	health = energy_config.max_health
 	stamina = energy_config.max_stamina
+	inventory = Inventory.new(economy_config.inventory_slots)
+	inventory.changed.connect(_on_inventory_changed)
+	apply_starting_kit()
 
 
 func _ready() -> void:
@@ -48,6 +72,22 @@ func bind_clock(c: GameClock) -> void:
 	clock = c
 	if clock:
 		clock.day_ended.connect(_on_day_ended)
+
+
+## New-game Coins and items from economy_config (placeholders). Replaces the
+## current Coins and inventory.
+func apply_starting_kit() -> void:
+	coins = maxi(economy_config.starting_coins, 0)
+	inventory.clear()
+	for id in economy_config.starting_items:
+		inventory.add(StringName(id), int(economy_config.starting_items[id]))
+	coins_changed.emit(coins)
+
+
+## Adds harvested/dropped items. Returns how many fit (the rest is lost;
+## placeholder: there are no ground drops yet).
+func add_item(id: StringName, amount: int = 1) -> int:
+	return inventory.add(id, amount)
 
 
 func add_coins(amount: int) -> void:
@@ -86,18 +126,22 @@ func refill_stamina(amount: float = -1.0) -> void:
 	_set_stamina(energy_config.max_stamina if amount < 0.0 else stamina + amount)
 
 
-## GDD: eating food refills stamina. Food items/values are not designed yet,
-## so callers pass the amounts (stub for the inventory milestone).
-func eat(stamina_amount: float, health_amount: float = 0.0) -> void:
-	refill_stamina(maxf(stamina_amount, 0.0))
+## GDD: eating food refills stamina. DECISIONS.md: the refill depends on the
+## food (Player passes ItemData.stamina_refill); stamina_amount < 0 uses the
+## placeholder fallback energy_config.eat_stamina_refill. Health outside
+## battle stays a stub (on hold per DECISIONS.md).
+func eat(stamina_amount: float = -1.0, health_amount: float = 0.0) -> void:
+	refill_stamina(energy_config.eat_stamina_refill if stamina_amount < 0.0 else stamina_amount)
 	if health_amount > 0.0:
 		heal(health_amount)
 
 
-## GDD: resting in a hot spring refills stamina. Stub: no hot spring exists
-## yet; restores hot_spring_stamina_per_game_hour (placeholder) per hour.
-func rest_in_hot_spring(game_minutes: float) -> void:
-	refill_stamina(energy_config.hot_spring_stamina_per_game_hour * maxf(game_minutes, 0.0) / 60.0)
+## GDD: resting in a hot spring refills stamina. DECISIONS.md: at a steady
+## rate; call every frame/tick while soaking with the elapsed seconds
+## (rate: energy_config.hot_spring_stamina_per_second, placeholder). No hot
+## spring is placed in the world yet.
+func soak_in_hot_spring(delta_seconds: float) -> void:
+	refill_stamina(energy_config.hot_spring_stamina_per_second * maxf(delta_seconds, 0.0))
 
 
 ## Health hooks (what health does outside battle is a GDD open question).
@@ -148,9 +192,85 @@ func apply_sleep(pass_out: bool) -> Dictionary:
 	return penalties
 
 
+# --- Monsters ---------------------------------------------------------------
+
+## Adds a monster to the roster and, if there is room and `to_party`, to the
+## party. Returns true if it joined the party.
+func add_monster(m: RefCounted, to_party: bool = true) -> bool:
+	if m == null:
+		return false
+	if not monsters.has(m):
+		monsters.append(m)
+	var joined := false
+	if to_party and not party.has(m) and party.size() < get_party_max():
+		party.append(m)
+		m.home = &"party"
+		joined = true
+	monsters_changed.emit()
+	return joined
+
+
+func get_monster(uid: String) -> RefCounted:
+	for m in monsters:
+		if m.uid == uid:
+			return m
+	return null
+
+
+## GDD opening: the chosen Assessment monster becomes the player's first
+## monster and decides the farm's starting biome; DECISIONS.md: that biome's
+## habitat is already built. GDD: a wild-caught monster lives in its biome's
+## habitat until bonded, so it goes there unless `join_party` (party of 2
+## comes from the barn in Slice 3).
+func complete_assessment(m: RefCounted, join_party: bool = false) -> void:
+	if m == null:
+		return
+	var biome: int = m.origin_biome
+	if farm_biome < 0 and biome >= 0:
+		farm_biome = biome
+		build_habitat(biome)
+	add_monster(m, join_party)
+	if not party.has(m):
+		var hab := get_habitat(biome)
+		m.home = StringName(hab.id) if not hab.is_empty() else &"pasture"
+	assessment_done = true
+	assessment_completed.emit(m)
+
+
+## Marks the habitat for `biome` as built (data from HabitatData). Returns the
+## state entry.
+func build_habitat(biome: int) -> Dictionary:
+	var existing := get_habitat(biome)
+	if not existing.is_empty():
+		existing.built = true
+		return existing
+	var data := HabitatData.for_biome(biome)
+	var entry := {"id": String(data.id) if data else "habitat_%d" % biome, "biome": biome, "built": true}
+	habitats.append(entry)
+	return entry
+
+
+func get_habitat(biome: int) -> Dictionary:
+	for h in habitats:
+		if int(h.biome) == biome:
+			return h
+	return {}
+
+
+func get_party_max() -> int:
+	var cfg := load(MONSTER_CONFIG_PATH) as MonsterConfig
+	return cfg.party_max if cfg else 2
+
+
 func to_dict() -> Dictionary:
 	return {
 		"coins": coins,
+		"inventory": inventory.to_array(),
+		"monsters": monsters.map(func(m): return m.to_dict()),
+		"party": party.map(func(m): return m.uid),
+		"farm_biome": farm_biome,
+		"habitats": habitats.duplicate(true),
+		"assessment_done": assessment_done,
 		"health": health,
 		"stamina": stamina,
 		"last_sleep_was_pass_out": last_sleep_was_pass_out,
@@ -160,10 +280,34 @@ func to_dict() -> Dictionary:
 
 func from_dict(data: Dictionary) -> void:
 	coins = int(data.get("coins", 0))
+	coins_changed.emit(coins)
+	if data.get("inventory") is Array:
+		inventory.from_array(data["inventory"])
+	monsters.clear()
+	party.clear()
+	for md in data.get("monsters", []):
+		if md is Dictionary:
+			monsters.append(Monster.from_dict(md))
+	for uid in data.get("party", []):
+		var m := get_monster(String(uid))
+		if m and not party.has(m) and party.size() < get_party_max():
+			party.append(m)
+	monsters_changed.emit()
+	farm_biome = int(data.get("farm_biome", -1))
+	habitats = []
+	for h in data.get("habitats", []):
+		if h is Dictionary:
+			habitats.append({"id": String(h.get("id", "")), "biome": int(h.get("biome", -1)),
+				"built": bool(h.get("built", false))})
+	assessment_done = bool(data.get("assessment_done", false))
 	_set_health(float(data.get("health", energy_config.max_health)))
 	_set_stamina(float(data.get("stamina", energy_config.max_stamina)))
 	last_sleep_was_pass_out = bool(data.get("last_sleep_was_pass_out", false))
 	pass_out_count = int(data.get("pass_out_count", 0))
+
+
+func _on_inventory_changed() -> void:
+	inventory_changed.emit()
 
 
 func _on_day_ended(_day: int, pass_out: bool) -> void:
