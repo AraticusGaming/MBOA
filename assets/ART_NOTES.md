@@ -54,6 +54,17 @@ Tiles 0-7 are fully opaque ground tiles; 8-12 belong on a layer above the ground
 | 3 | harvest-ready (turnip-style root) |
 Transparent background; draw on a layer above tilled/watered soil (tiles 4/5).
 
+## Godot integration status (Cody)
+- farm_tiles.png -> `resources/farm_tileset.tres` (atlas source 0, tiles 0-12). Ground uses
+  grass 0-2 (weighted, seeded); plots use 3 dirt / 4 tilled / 5 watered via
+  `resources/farm_tile_mapping.tres`. Paths (6-7) and fences (8-12) not placed yet.
+- player_base.png -> `resources/player_frames.tres`: `idle_<dir>` (cols 0-3, 4 fps) and
+  `walk_<dir>` (cols 4-7, 8 fps), AnimatedSprite2D offset (0, -16), origin = feet.
+- crop_basic.png -> `resources/crops/placeholder_crop.tres` (`growth_frames` [0,1,2],
+  `mature_frame` 3), drawn bottom-centered on the plot cell.
+- Regenerate the .tres files with `tools/godot/build_art_resources.gd` if a layout changes.
+- Still placeholder shapes: bed, HUD.
+
 ## Coming later
 - Starter monsters default to **32x32** frames; idle animations will be **2-4 frames**,
   one row per animation, transparent PNG sheets in `assets/sprites/`.

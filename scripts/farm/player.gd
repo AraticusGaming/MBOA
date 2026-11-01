@@ -2,7 +2,10 @@ class_name Player
 extends CharacterBody2D
 ## Top-down farmer. 4-direction movement, tool selection and interaction with
 ## the faced cell (or a tapped/clicked nearby cell for mouse/touch).
-## Placeholder art: a 16x32 rectangle with origin at the feet (bottom-center).
+## Origin is at the feet (bottom-center). Art: child AnimatedSprite2D "Sprite"
+## using resources/player_frames.tres (animations idle_/walk_ + down/left/
+## right/up), offset (0, -16) per assets/ART_NOTES.md so the 16x32 frame's
+## bottom row sits on the origin. Without a Sprite it draws a placeholder rect.
 
 signal tool_changed(tool: int)
 
@@ -16,6 +19,9 @@ signal tool_changed(tool: int)
 ## Max cell distance (Chebyshev) for tap/click actions.
 @export var tap_reach_cells: int = 1
 
+## Sprite tint while tired (PLACEHOLDER feedback until there is tired art).
+@export var tired_sprite_tint: Color = Color(0.82, 0.82, 1.0)
+
 @export_group("Placeholder colors")
 @export var color_body: Color = Color(0.25, 0.45, 0.85)
 @export var color_head: Color = Color(0.95, 0.8, 0.65)
@@ -25,11 +31,21 @@ var facing: Vector2i = Vector2i.DOWN
 var current_tool: int = FarmTools.Tool.HOE
 var farm_grid: FarmGrid
 var clock: GameClock
+var sprite: AnimatedSprite2D
+var is_moving: bool = false
 var _nearby_beds: Array[Node] = []
+
+const DIRECTION_NAMES := {
+	Vector2i.DOWN: "down",
+	Vector2i.LEFT: "left",
+	Vector2i.RIGHT: "right",
+	Vector2i.UP: "up",
+}
 
 
 func _ready() -> void:
 	add_to_group(&"player")
+	sprite = get_node_or_null(^"Sprite") as AnimatedSprite2D
 	if farm_grid == null and not farm_grid_path.is_empty():
 		farm_grid = get_node_or_null(farm_grid_path) as FarmGrid
 	if clock == null:
@@ -43,11 +59,14 @@ func _physics_process(_delta: float) -> void:
 	if dir != Vector2.ZERO:
 		facing = Vector2i(dir)
 	velocity = dir * get_current_speed()
+	is_moving = dir != Vector2.ZERO
 	move_and_slide()
 	global_position = global_position.clamp(world_bounds.position, world_bounds.end)
 	if farm_grid:
 		farm_grid.set_highlight(get_target_cell())
-	queue_redraw()
+	update_animation()
+	if sprite == null:
+		queue_redraw()
 
 
 func _unhandled_input(event: InputEvent) -> void:
@@ -69,6 +88,24 @@ func _unhandled_input(event: InputEvent) -> void:
 
 
 # --- Public API -------------------------------------------------------------
+
+## Animation name for the current facing/movement, e.g. "walk_left".
+func get_animation_name() -> StringName:
+	return StringName("%s_%s" % ["walk" if is_moving else "idle",
+		DIRECTION_NAMES.get(facing, "down")])
+
+
+func update_animation() -> void:
+	if sprite == null or sprite.sprite_frames == null:
+		return
+	var anim := get_animation_name()
+	if sprite.animation != anim and sprite.sprite_frames.has_animation(anim):
+		sprite.play(anim)
+	elif not sprite.is_playing():
+		sprite.play()
+	var tired := clock != null and clock.is_tired
+	sprite.self_modulate = tired_sprite_tint if tired else Color.WHITE
+
 
 func get_current_speed() -> float:
 	var tired := clock != null and clock.is_tired
@@ -147,6 +184,8 @@ func _read_direction() -> Vector2:
 
 
 func _draw() -> void:
+	if sprite != null:
+		return
 	var tired := clock != null and clock.is_tired
 	draw_rect(Rect2(-6, -22, 12, 22), color_tired if tired else color_body)
 	draw_rect(Rect2(-5, -31, 10, 10), color_head)

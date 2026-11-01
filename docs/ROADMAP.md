@@ -7,7 +7,7 @@ Owners: Cody = systems/GDScript, ART = pixel art, Ledan = integration, structure
 - [x] Player movement and a basic farm scene (Cody)
 - [x] Farm tiles: till, plant, water, grow (Cody)
 - [x] Sleeping and pass-out, day rollover (Cody)
-- [ ] Placeholder tileset and player sprite (ART)
+- [x] Placeholder tileset and player sprite (ART; integrated in-game by Cody)
 - Open questions (configurable constants for now): pass-out penalty, climate, crop growth days, mobile controls. See `docs/OPEN_QUESTIONS.md`.
   Placeholders: `resources/pass_out_config.tres` (all penalties 0) and `resources/climate_config.tres` (unused hook).
 - Design hook for later: the opening sequence (letter, Assessment with 5 traps in biome rooms, Angie, farm set up from the first monster's biome, Tom on day 2) will shape the start state. Keep the new-game flow data-driven.

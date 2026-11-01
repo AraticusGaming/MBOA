@@ -1,0 +1,10 @@
+[gd_resource type="Resource" script_class="FarmTileMapping" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/farm/farm_tile_mapping.gd" id="1_map"]
+
+[resource]
+script = ExtResource("1_map")
+source_id = 0
+empty_tile = Vector2i(3, 0)
+tilled_tile = Vector2i(4, 0)
+watered_tile = Vector2i(5, 0)
