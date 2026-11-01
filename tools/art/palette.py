@@ -1,4 +1,4 @@
-"""MBOA master palette (32 base colors + 6 ember colors, 38 total). All game art must use ONLY these colors
+"""MBOA master palette (32 base colors + 6 ember colors + 4 woodland colors, 42 total). All game art must use ONLY these colors
 (plus fully transparent pixels). Warm, slightly desaturated, cozy 16-bit look.
 
 Run directly to regenerate tools/art/palette.png (8-column grid of 16x16 swatches,
@@ -46,6 +46,11 @@ PALETTE = [
     ("ember_yellow", "#ffd25a"),  # 35 bright yellow, flame core
     ("ember_cream",  "#fff2c2"),  # 36 pale yellow-cream, hottest highlight
     ("ember_glow",   "#e8894e"),  # 37 soft glow orange, ear interiors / membranes
+    # --- woodland extension (slice 3 Woodland room, appended; indices 0-37 never change) ---
+    ("loam",         "#5b4a31"),  # 38 olive-brown forest floor
+    ("loam_dark",    "#3f3427"),  # 39 forest floor shade, shadows under the canopy
+    ("moss",         "#85963d"),  # 40 muted olive moss
+    ("canopy_deep",  "#1a3126"),  # 41 deepest canopy shadow (gaps in the tree wall)
 ]
 
 def _rgb(h):
