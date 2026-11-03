@@ -1,10 +1,10 @@
-# MBOA Art Notes (Milestone 1, 1b polish, creatures, slice 3 Woodland)
+# MBOA Art Notes (Milestone 1, 1b polish, creatures, slice 3 Woodland, Woodland trees)
 
 Style: strict 16-bit, cozy, Stardew-like. Clean pixels, no anti-aliasing, no blur,
 one pixel scale. Colored (plum-brown / dark green / dark red) outlines, never pure black.
 
 ## Palette
-- Master palette (42 colors): `tools/art/palette.py` (`PALETTE`, index order = swatch order).
+- Master palette (48 colors): `tools/art/palette.py` (`PALETTE`, index order = swatch order).
   Indices 0-31 are the original M1 colors and never change; new colors are only appended.
 - Swatch: `tools/art/palette.png` (8 columns of 16x16 swatches, left-to-right, top-to-bottom;
   8x6 grid now, last row partly filled).
@@ -28,6 +28,16 @@ one pixel scale. Colored (plum-brown / dark green / dark red) outlines, never pu
 | 39 | loam_dark | `#3f3427` | floor specks, contact shadows, canopy shadow dither, path rim |
 | 40 | moss | `#85963d` | muted olive moss (patches, mossy floor, log/rock caps) |
 | 41 | canopy_deep | `#1a3126` | deepest gaps between canopy clumps in the tree wall |
+- Woodland trees extension (seasonal tree sheets):
+
+| idx | name | hex | use |
+|----:|------|-----|-----|
+| 42 | rust | `#a4532e` | fall oak leaves, orange-brown mid tone |
+| 43 | gold_dark | `#b07f24` | fall birch leaves, golden shade |
+| 44 | pine | `#2c5847` | pine needles, blue-green mid tone |
+| 45 | pine_light | `#4a805c` | pine needles, lit tone |
+| 46 | snow | `#eef3f4` | snow, cool white |
+| 47 | snow_shade | `#b3c5d6` | snow shadow, pale blue |
 - Every opaque pixel in shipped PNGs is a palette color; alpha is only 0 or 255.
 
 ## Regenerating
@@ -51,6 +61,9 @@ one pixel scale. Colored (plum-brown / dark green / dark red) outlines, never pu
   plot (full, ground and objects layers) and the barn stages. It takes an optional
   `--preview DIR`, and `preview_slice3_buildings.py` renders the 8x previews, a fence ring test
   and a mock farm with the barn, pasture, habitat, player and creatures.
+- `python3 tools/art/gen_woodland_trees.py` writes the four seasonal tree sheets
+  (`tree_oak/pine/birch/maple.png`). Optional `--preview DIR`; `preview_woodland_trees.py`
+  renders 4x/8x sheets, a species x season line-up and a mock Woodland scene with the player.
 
 ## Godot import
 Use nearest filtering (already set in `project.godot`), no mipmaps, integer scaling.
@@ -198,7 +211,44 @@ palette; frame it with the dialogue/UI box like the NPC portraits.
 | item_watering_can.png | blue watering can with spout and rose |
 Drawn with a 1px plum outline and at least a 0-1px transparent margin; center in a 16x16 slot.
 
+## Woodland trees: assets/sprites/tree_{oak,pine,birch,maple}.png (240x320 each)
+One sheet per species. Uniform 48x80 cells (3 tiles wide, 5 tall), 5 columns x 4 rows.
+Frame index = row * 5 + col; cell top-left = (col * 48, row * 80).
+
+| col | stage (`TreeData.Stage`) | drawn size, bottom-centered | notes |
+|----:|-------|------|-------|
+| 0 | SEED | 16x16 | species seed on a dirt mound: acorn, pine cone, birch catkin, maple samara |
+| 1 | SEEDLING | 16x16 | sprout; deciduous winter = bare stem with snow |
+| 2 | SAPLING | 16x32 | thin trunk + small species-shaped crown |
+| 3 | GROWN | 48x80 | full tree (canopy reaches the cell top) |
+| 4 | STUMP | 16x24 max | what a felled grown tree leaves for the 4 stump hits |
+
+| row | season (`GameClock.Season`) | oak | pine | birch | maple |
+|----:|------|-----|------|-------|-------|
+| 0 | SPRING | fresh green + pink blossoms | evergreen | light green + catkins | bright green |
+| 1 | SUMMER | deep green | evergreen | green | green |
+| 2 | FALL | orange-brown | slightly warmer green | golden yellow | red-orange |
+| 3 | WINTER | bare limbs, snow on limbs | snow on every tier | bare, white trunk, snow dabs | bare, upright limbs, snow |
+
+Small stages get light season variants (fall: warm leaf tint / a fallen leaf; winter: snow).
+Silhouettes: oak round and broad, pine conical tiers, birch slender and airy (white trunk),
+maple rounded five-lobed star.
+
+- Anchor = bottom-center (24, 80) of the cell. The trunk base / feet sit on y = 79, and the
+  bottom row only uses x 16-31, so the base is exactly one tile. Put the anchor on the
+  bottom-center of the tree's cell: frame top-left = cell bottom-center + (-24, -80).
+- Sprite2D: `region_rect` = the cell, `centered = true`, `offset = (0, -40)`, position = cell
+  bottom-center (same for every stage, so changing stage/season only changes the region).
+- Collision suggestion: only the trunk tile (one 16x16 cell, or a ~10x6 rect at the base) is
+  solid; seed and seedling no collision. The canopy is not solid.
+- Draw trees in a y-sorted layer with the player (origin at the trunk base) so the player walks
+  behind the canopy and in front of the trunk when below it. Optionally fade the canopy when
+  the player is behind it.
+- Outlines are colored: plum `outline` (0) on bark/branches, dark green on canopies,
+  `stone_dark` (16) on birch bark, `canopy_deep` (41) on pine.
+
 ## assets/sprites/tree_stages.png (160x48, 32x48 frames, 5 columns x 1 row)
+Legacy M1b placeholder tree, kept unchanged; use the Woodland tree sheets above for new work.
 | frame | stage | visible pixels (x0,y0)-(x1,y1) in frame | footprint |
 |------:|-------|--------------------------|-----------|
 | 0 | seed (planted, dirt mound) | (11,43)-(21,48) | 1 cell |

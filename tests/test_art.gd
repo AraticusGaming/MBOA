@@ -23,6 +23,10 @@ const BUILDING_ART := {
 	"res://assets/sprites/habitat_woodland_objects.png": Vector2i(64, 64),
 	"res://assets/sprites/barn_stages.png": Vector2i(400, 80),
 }
+## Woodland trees (ART_NOTES "Woodland trees"): 240x320, 48x80 cells,
+## columns = TreeData.Stage (seed..stump), rows = GameClock.Season.
+const TREE_SPECIES := ["oak", "pine", "birch", "maple"]
+const TREE_CELL := Vector2i(48, 80)
 
 
 func _run_tests() -> void:
@@ -33,6 +37,7 @@ func _run_tests() -> void:
 	_test_woodland_art()
 	_test_woodland_creatures()
 	_test_buildings()
+	_test_trees()
 	await _test_player_animation()
 
 
@@ -136,6 +141,66 @@ func _test_buildings() -> void:
 			grounded = grounded and r.size != Vector2i.ZERO and r.end.y == 80
 			grounded = grounded and barn.get_pixel(i * 80 + 40, 79).a8 == 255  # door sill
 		check(grounded, "barn: 5 stages drawn, standing on the bottom row with the door at x=40")
+
+
+func _palette_colors() -> Dictionary:
+	# Swatch is 8 columns of 16x16 cells; sample each cell's centre.
+	var sw := Image.load_from_file(ProjectSettings.globalize_path("res://tools/art/palette.png"))
+	var cols := {}
+	if sw == null:
+		return cols
+	for y in range(8, sw.get_height(), 16):
+		for x in range(8, sw.get_width(), 16):
+			var p := sw.get_pixel(x, y)
+			if p.a8 == 255:
+				cols[p.to_html(false)] = true
+	return cols
+
+
+func _test_trees() -> void:
+	check_eq(TreeData.Stage.size(), 5, "5 tree sheet columns = TreeData.Stage (seed..stump)")
+	check_eq(GameClock.Season.size(), 4, "4 tree sheet rows = GameClock.Season")
+	var pal := _palette_colors()
+	check(pal.size() >= 48, "palette swatch has the 48 colors")
+	for sp in TREE_SPECIES:
+		var path := "res://assets/sprites/tree_%s.png" % sp
+		var img := _img(path)
+		check(img != null, "%s loads" % path)
+		if img == null:
+			continue
+		check_eq(Vector2i(img.get_size()), Vector2i(240, 320), "tree_%s.png size (5x4 cells of 48x80)" % sp)
+		var alpha_ok := true
+		var pal_ok := true
+		for y in img.get_height():
+			for x in img.get_width():
+				var p := img.get_pixel(x, y)
+				if p.a8 != 0 and p.a8 != 255:
+					alpha_ok = false
+				elif p.a8 == 255 and not pal.has(p.to_html(false)):
+					pal_ok = false
+		check(alpha_ok, "tree_%s alpha is only 0 or 255" % sp)
+		check(pal_ok, "tree_%s uses palette colors only" % sp)
+		# Every cell is drawn, stands on its bottom row (anchor bottom-centre (24, 80)),
+		# and its base row sits inside the trunk tile column x 16-31.
+		var grounded := true
+		var base_ok := true
+		for row in 4:
+			for col in 5:
+				var cell := Rect2i(col * TREE_CELL.x, row * TREE_CELL.y, TREE_CELL.x, TREE_CELL.y)
+				var used := img.get_region(cell).get_used_rect()
+				grounded = grounded and used.size != Vector2i.ZERO and used.end.y == TREE_CELL.y
+				for x in TREE_CELL.x:
+					var on := img.get_pixel(cell.position.x + x, cell.end.y - 1).a8 > 0
+					if on and (x < 16 or x > 31):
+						base_ok = false
+		check(grounded, "tree_%s: all 20 cells drawn and touch y = 79" % sp)
+		check(base_ok, "tree_%s: base row stays inside the trunk tile (x 16-31)" % sp)
+		# Grown trees are full size: canopy reaches near the cell top in every season.
+		var tall := true
+		for row in 4:
+			var used := img.get_region(Rect2i(3 * TREE_CELL.x, row * TREE_CELL.y, TREE_CELL.x, TREE_CELL.y)).get_used_rect()
+			tall = tall and used.position.y <= 12 and used.size.x >= 32
+		check(tall, "tree_%s: grown frames fill the 48x80 cell" % sp)
 
 
 func _test_woodland_creatures() -> void:
