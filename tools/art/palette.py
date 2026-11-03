@@ -1,4 +1,4 @@
-"""MBOA master palette (32 base colors + 6 ember + 4 woodland + 6 tree colors, 48 total). All game art must use ONLY these colors
+"""MBOA master palette (32 base colors + 6 ember + 4 woodland + 10 tree colors, 52 total). All game art must use ONLY these colors
 (plus fully transparent pixels). Warm, slightly desaturated, cozy 16-bit look.
 
 Run directly to regenerate tools/art/palette.png (8-column grid of 16x16 swatches,
@@ -58,6 +58,11 @@ PALETTE = [
     ("pine_light",   "#4a805c"),  # 45 pine needles, lit tone
     ("snow",         "#eef3f4"),  # 46 snow, cool white
     ("snow_shade",   "#b3c5d6"),  # 47 snow shadow, pale blue
+    # --- woodland trees detail extension (rework, appended; indices 0-47 never change) ---
+    ("bark_grey",       "#5f544d"),  # 48 maple bark, grey-brown mid
+    ("bark_grey_light", "#8a7d6f"),  # 49 maple bark, lit side
+    ("gold",            "#d9a23a"),  # 50 fall gold between gold_dark and yellow
+    ("crimson",         "#9e2b2e"),  # 51 fall maple deep red
 ]
 
 def _rgb(h):

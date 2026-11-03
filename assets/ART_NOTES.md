@@ -4,7 +4,7 @@ Style: strict 16-bit, cozy, Stardew-like. Clean pixels, no anti-aliasing, no blu
 one pixel scale. Colored (plum-brown / dark green / dark red) outlines, never pure black.
 
 ## Palette
-- Master palette (48 colors): `tools/art/palette.py` (`PALETTE`, index order = swatch order).
+- Master palette (52 colors): `tools/art/palette.py` (`PALETTE`, index order = swatch order).
   Indices 0-31 are the original M1 colors and never change; new colors are only appended.
 - Swatch: `tools/art/palette.png` (8 columns of 16x16 swatches, left-to-right, top-to-bottom;
   8x6 grid now, last row partly filled).
@@ -38,6 +38,14 @@ one pixel scale. Colored (plum-brown / dark green / dark red) outlines, never pu
 | 45 | pine_light | `#4a805c` | pine needles, lit tone |
 | 46 | snow | `#eef3f4` | snow, cool white |
 | 47 | snow_shade | `#b3c5d6` | snow shadow, pale blue |
+- Woodland trees detail extension (tree rework):
+
+| idx | name | hex | use |
+|----:|------|-----|-----|
+| 48 | bark_grey | `#5f544d` | maple bark mid tone, fine winter maple / birch twigs |
+| 49 | bark_grey_light | `#8a7d6f` | maple bark lit side |
+| 50 | gold | `#d9a23a` | fall gradients (maple gold, oak amber), catkins, resin |
+| 51 | crimson | `#9e2b2e` | fall maple deep red, spring maple flowers |
 - Every opaque pixel in shipped PNGs is a palette color; alpha is only 0 or 255.
 
 ## Regenerating
@@ -63,7 +71,8 @@ one pixel scale. Colored (plum-brown / dark green / dark red) outlines, never pu
   and a mock farm with the barn, pasture, habitat, player and creatures.
 - `python3 tools/art/gen_woodland_trees.py` writes the four seasonal tree sheets
   (`tree_oak/pine/birch/maple.png`). Optional `--preview DIR`; `preview_woodland_trees.py`
-  renders 4x/8x sheets, a species x season line-up and a mock Woodland scene with the player.
+  renders 4x/8x sheets, a species x season line-up, a winter oak vs maple comparison
+  (`trees_winter_compare.png`, 1x and 4x) and a mock Woodland scene with the player.
 
 ## Godot import
 Use nearest filtering (already set in `project.godot`), no mipmaps, integer scaling.
@@ -218,21 +227,34 @@ Frame index = row * 5 + col; cell top-left = (col * 48, row * 80).
 | col | stage (`TreeData.Stage`) | drawn size, bottom-centered | notes |
 |----:|-------|------|-------|
 | 0 | SEED | 16x16 | species seed on a dirt mound: acorn, pine cone, birch catkin, maple samara |
-| 1 | SEEDLING | 16x16 | sprout; deciduous winter = bare stem with snow |
-| 2 | SAPLING | 16x32 | thin trunk + small species-shaped crown |
-| 3 | GROWN | 48x80 | full tree (canopy reaches the cell top) |
-| 4 | STUMP | 16x24 max | what a felled grown tree leaves for the 4 stump hits |
+| 1 | SEEDLING | 16x16 | sprout with species leaves; deciduous winter = bare stem |
+| 2 | SAPLING | 24x40 | thin trunk + a real little crown of species foliage (oak round clumps, maple pointed clusters, birch drooping clusters on a white leaning stem, pine mini tiers); winter = bare twigs with buds and snow |
+| 3 | GROWN | 48x80 | full tree using the whole cell (canopy ~44-48 wide, top at y 0-13) |
+| 4 | STUMP | 24x24 max | ringed cut face with pith and crack, splintered rim, ridged bark, flared roots |
 
 | row | season (`GameClock.Season`) | oak | pine | birch | maple |
 |----:|------|-----|------|-------|-------|
-| 0 | SPRING | fresh green + pink blossoms | evergreen | light green + catkins | bright green |
-| 1 | SUMMER | deep green | evergreen | green | green |
-| 2 | FALL | orange-brown | slightly warmer green | golden yellow | red-orange |
-| 3 | WINTER | bare limbs, snow on limbs | snow on every tier | bare, white trunk, snow dabs | bare, upright limbs, snow |
+| 0 | SPRING | fresh green, gold catkins, pale blossoms | evergreen, light new-growth tips | pale green, gold catkins | pale green, crimson flower clusters |
+| 1 | SUMMER | deep green, acorns | evergreen, cones | green, weeping clusters | bright green, samaras |
+| 2 | FALL | rust / orange / amber clumps + one lingering green, acorns, leaves on the ground | bronzed lit side | golden yellow + gold_dark, leaves on the ground | gradient: gold top, orange, red/crimson below, leaves on the ground |
+| 3 | WINTER | heavy, crooked, WIDE low limbs, broad dome of twigs, snow on top of the limbs | snow-laden tiers | slender white trunk, arching white branches, curtains of weeping twigs | narrow upright vase/oval of thin ascending grey twigs, smaller crown |
 
-Small stages get light season variants (fall: warm leaf tint / a fallen leaf; winter: snow).
-Silhouettes: oak round and broad, pine conical tiers, birch slender and airy (white trunk),
-maple rounded five-lobed star.
+Silhouettes: oak broad and round with a thick trunk, pine conical tiers, birch slender,
+leaning and airy (white trunk), maple taller oval of pointed clusters on a straight grey trunk.
+
+Construction (deterministic, `tools/art/gen_woodland_trees.py`):
+- Canopies are many overlapping leaf masses drawn lower-first (upper masses in front), lit from
+  the top-left with a 4-5 tone ramp, cast shadow under each mass, rim highlight, leaf-crescent
+  texture inside each mass, small rim clumps that scallop the silhouette, gaps that show the
+  limbs behind, and scattered edge leaves. Oak masses are rounded; maple masses are pointed
+  leaf clusters (three hanging points and side points) in a rounded-triangular oval; birch
+  clusters are teardrops hanging under arching branches; pine is drooping needle tiers with a
+  lit upper rim, dark under-fringe and hanging cones.
+- Trunks: bark shaded lit-left with wavy ridges and knots; oak thick and gnarled with root
+  flare, maple straighter grey bark, birch white with varied black lenticels, chevron scars and
+  a rough dark base, pine red-brown.
+- Winter oak vs maple is checked side by side at 1x and 4x
+  (`gen_woodland_trees.py --preview DIR` writes `trees_winter_compare.png`).
 
 - Anchor = bottom-center (24, 80) of the cell. The trunk base / feet sit on y = 79, and the
   bottom row only uses x 16-31, so the base is exactly one tile. Put the anchor on the

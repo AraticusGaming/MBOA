@@ -59,15 +59,39 @@ def preview(outdir, outs):
     up(allimg, 4).save(out / "trees_all.png")
     # stage x season grid of small stages, per species, to check seasonal variants
     for sp, sh in sheets.items():
-        small = Image.new("RGBA", (4 * 18 + 2, 4 * 34 + 2), BG)
+        small = Image.new("RGBA", (4 * 26 + 2, 4 * 42 + 2), BG)
         for s in range(4):
-            for st in range(3):
-                cell = sh.crop((st * CW + 16, s * CH + 48, st * CW + 32, s * CH + 80))
-                small.alpha_composite(cell, (2 + st * 18, 2 + s * 34))
-            cell = sh.crop((4 * CW + 16, s * CH + 48, 4 * CW + 32, s * CH + 80))
-            small.alpha_composite(cell, (2 + 3 * 18, 2 + s * 34))
+            for k, st in enumerate((0, 1, 2, 4)):
+                cell = sh.crop((st * CW + 12, s * CH + 40, st * CW + 36, s * CH + 80))
+                small.alpha_composite(cell, (2 + k * 26, 2 + s * 42))
         up(small, 8).save(out / f"trees_{sp}_small_8x.png")
+    winter_compare(out, sheets)
     scene(out, sheets)
+
+
+def winter_compare(out, sheets):
+    """Winter oak vs winter maple (and all four winter trees) at 1x and 4x side by side."""
+    order = [sp for sp in ("oak", "maple", "birch", "pine") if sp in sheets]
+    cells = [sheets[sp].crop((3 * CW, 3 * CH, 4 * CW, 4 * CH)) for sp in order]
+    snow_bg = (214, 226, 232, 255)
+    one = Image.new("RGBA", ((CW + 4) * len(cells) + 4, CH + 8), snow_bg)
+    for i, cimg in enumerate(cells):
+        one.alpha_composite(cimg, (4 + i * (CW + 4), 4))
+    big = up(Image.alpha_composite(Image.new("RGBA", (CW * 2 + 12, CH + 8), snow_bg),
+                                   Image.new("RGBA", (CW * 2 + 12, CH + 8))), 1)
+    pair = Image.new("RGBA", (CW * 2 + 12, CH + 8), snow_bg)
+    pair.alpha_composite(cells[0], (4, 4))
+    pair.alpha_composite(cells[1], (CW + 8, 4))
+    pair4 = up(pair, 4)
+    one2 = up(one, 2)   # "1x" strip shown at 2x and true 1x copy, both for readability
+    W = pair4.width + 16 + max(one.width, one2.width)
+    H = max(pair4.height, one.height + one2.height + 24) + 16
+    sheet = Image.new("RGBA", (W, H), (40, 52, 60, 255))
+    sheet.alpha_composite(pair4, (8, 8))
+    sheet.alpha_composite(one, (pair4.width + 16, 8))
+    sheet.alpha_composite(one2, (pair4.width + 16, one.height + 24))
+    del big
+    sheet.save(out / "trees_winter_compare.png")
 
 
 def scene(out, sheets):
